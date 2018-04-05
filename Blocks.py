@@ -9,7 +9,16 @@ from datetime import datetime
 import mmap
 
 
-#%% Classes
+#%% Error classes
+
+class BlockSizeMismatch(Exception):
+     def __init__(self):
+         self.value = "Block size doesn't match cursor"
+     def __str__(self):
+         return repr(self.value)
+        
+
+#%% High level classes
     
 class Common():
     """
@@ -44,6 +53,42 @@ class Common():
         
         return out
         
+class Chain(Common):
+    """
+    Class to handle chain and loading from .dat files
+    """
+    def __init__(self, 
+                 path='Blocks/',
+                 start=0, 
+                 n=10):
+        self.BLKStart = start
+        self.BLKEnd = start+n
+        self.BLKPath = path
+        
+        self.on = start
+    
+    def read_next_BLK(self):
+        """
+        Read next blk, track progress. Can move past specified end.
+        """
+        blk = self.readBLK(self.on)
+        blk.read_all()
+        
+        self.on+=1
+        
+    def readBLK(self, BLKn):
+        f = "{0}blk{1:05d}.dat".format(self.BLKPath, BLKn)
+        
+        print f
+        blk = BLK(f)   
+
+        return blk
+    
+    def read_all(self):
+        """
+        Read all blocks in .dat
+        """
+        pass
 
 class BLK(Common):
     """
@@ -53,13 +98,15 @@ class BLK(Common):
     def __init__(self, f):
         self.f = f
         self.reset()
-        self.cursor=0
+        self.cursor = 0
+        self.blocks = {}
+        self.nBlock = 0
 
     def reset(self):
         """
         Open file, map, reset cursor
         """
-        self.blk = open(f, 'rb')
+        self.blk = open(self.f, 'rb')
         self.mmap = mmap.mmap(self.blk.fileno(), 0, access=mmap.ACCESS_READ) 
         self.cursor = 0
         
@@ -71,7 +118,10 @@ class BLK(Common):
         
         print " Starting from: " + str(self.cursor)
         b = Block(self.mmap, self.cursor)
+        self.blocks[self.nBlock] = b
         self.cursor = b.end
+        
+        self.nBlock+=1
         
         print self.cursor
         return self
@@ -79,10 +129,22 @@ class BLK(Common):
     def read_all(self):
         """
         Read all blocks in .dat
+        
+        TODO:
+            - Replace Try/except with end check
         """
-        pass
+        more=True
+        while more==True:
+            try:
+                self.read_next_block()
+            except:
+                print "End of .dat (?)"
+                more=False
+                
+
         
-        
+#%% Low level classes
+
 class Block(Common):
     """
     Class representing single block (and transactions)
@@ -106,6 +168,9 @@ class Block(Common):
         
         self.end = self.cursor
         
+        # Check size as expected
+        self.verify()
+        
     def read_header(self):
         """
         Read the block header
@@ -115,7 +180,7 @@ class Block(Common):
         self.magic = self.read_next(4)    
         
         # Read block size: 4 bytes
-        self.blockSize = self.read_next(4)
+        self.blockSize = self.read_next(4, rev=True)
         self.blockSize = int(self.blockSize, 16)
         
         # Read version: 4 bytes
@@ -140,7 +205,6 @@ class Block(Common):
         # Read the number of transactions: 1 byte
         self.nTransactions = int(self.read_next(1))
         
-        
     def read_trans(self):  
         """
         Read transaction information in block
@@ -156,6 +220,20 @@ class Block(Common):
            
         self.cursor = fr
         
+    def verify(self):
+        """
+        Verify block size.
+        End cursor position - cursor start position should match blockSize
+        plus the 8 bytes for the magic number
+        
+        
+        TODO:
+            - Add hash verify
+        """
+        # Block size check
+        if (self.end - self.start) != (self.blockSize + 8):
+            raise BlockSizeMismatch
+
     def _print(self):
         print "*"*10 + "Read block" + "*"*10
         print "Beginning at: "+ str(self.start)
@@ -232,6 +310,11 @@ class Transaction(Common):
         print '    pk script: ' + self.pkScript
         print '    lock time: ' + self.lockTime  
         
+    def verify(self):
+        """
+        Verify transaction
+        """
+        pass
 
 if __name__=="__main__":    
     ""
@@ -244,4 +327,9 @@ if __name__=="__main__":
     
     #%% Read next block
     
-    b = blk.read_next_block()
+    blk.read_next_block()
+
+
+    #%%
+    c = Chain()
+    c.read_next_BLK()

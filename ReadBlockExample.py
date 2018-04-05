@@ -167,3 +167,54 @@ for t in range(nTransactions):
     print "\nTRANSACTION {0}/{1}".format(t+1, nTransactions)
     cursor = read_trans(m, cursor)
     
+    
+#%% All blocks in .dat
+
+f = 'Blocks/blk00000.dat'
+blk = open(f, 'rb')
+m = mmap.mmap(blk.fileno(), 0, access=mmap.ACCESS_READ) 
+
+block = 0
+cursor = 0
+more = True
+while more==True:
+    try:
+        cursor, nTransactions = read_header(m, cursor)
+        for t in range(nTransactions):
+            print "\nTRANSACTION {0}/{1}".format(t+1, nTransactions)
+            cursor = read_trans(m, cursor)
+    except:
+        print "End of .dat (?)"
+        more=False
+    
+
+#%% All (3) .dats
+
+tRead=0
+bRead=0
+dRead=0
+for dat in range(1):
+
+    f = "Blocks/blk{0:05d}.dat".format(dat)
+    blk = open(f, 'rb')
+    m = mmap.mmap(blk.fileno(), 0, access=mmap.ACCESS_READ) 
+
+    block = 0
+    cursor = 0
+    more = True
+    while more==True:
+        try:
+            cursor, nTransactions = read_header(m, cursor)
+            bRead+=1
+            for t in range(nTransactions):
+                print "\nTRANSACTION {0}/{1}".format(t+1, nTransactions)
+                cursor = read_trans(m, cursor)
+                
+                tRead+=1
+        except:
+            print "End of .dat (?)"
+            more=False
+            dRead+=1
+            
+print "\n\nRead {0} transactions from {1} blocks stored in {2} files".format(
+                                    tRead, bRead, dRead)
