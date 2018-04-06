@@ -62,46 +62,58 @@ class Chain(Common):
     """
     def __init__(self, 
                  path='Blocks/',
-                 start=0, 
-                 n=10,
-                 verb=1):
-        self.BLKStart = start
-        self.BLKEnd = start+n
-        self.BLKPath = path
+                 datStart=0, 
+                 datn=10,
+                 verb=4):
+        self.datStart = datStart
+        self.datn = datn
+        self.datEnd = datStart+datn
+        self.datPath = path
         self.verb = verb
-        
-        self.on = start
+        self.datni = 0
+        self.dats = {}
+        self.on = datStart
     
-    def read_next_BLK(self):
+    def read_next_Dat(self):
         """
         Read next blk, track progress. Can move past specified end.
         """
-        blk = self.readBLK(self.on)
-        blk.read_all()
+        dat = self.readDat(datn=self.on)
+        dat.read_all()
         
         self.on+=1
         
-    def readBLK(self, BLKn):
-        f = "{0}blk{1:05d}.dat".format(self.BLKPath, BLKn)
+    def readDat(self, datn):
+        f = "{0}blk{1:05d}.dat".format(self.datPath, datn)
         
-        print f
-        blk = BLK(f)   
-
-        return blk
+        if self.verb>=1: print f
+        dat = Dat(f, 
+                  verb=self.verb)   
+        self.datni+=1
+        return dat
     
     def read_all(self):
         """
         Read all blocks in .dat
         """
-        pass
+        for fi in range(self.datStart, self.datStart+self.datn):
+            d = self.readDat(datn=fi)
+            
+            # For now:
+            # Save dat contents to Chain (dats ordered, blocks not)
+            print d\
+            self.dats[self.datni] = d
+            
+            # TODO:
+            #   - dat contents here need to be unpacked and ordered
 
-
-class BLK(Common):
+class Dat(Common):
     """
     Class to represent .blk file on disk.
     Opens and maps blk ready for reading
     """
-    def __init__(self, f, verb=2):
+    def __init__(self, f, 
+                 verb=4):
         self.f = f
         self.reset()
         self.cursor = 0
@@ -122,14 +134,15 @@ class BLK(Common):
         Read and return the next block
         Track cursor position
         """
-        b = Block(self.mmap, self.cursor)
-        self.blocks[self.nBlock] = b
+        b = Block(self.mmap, self.cursor, 
+                  verb=self.verb)
         self.cursor = b.end
         
         self.nBlock+=1
         
-        return self
-    
+        # Save block dat object - unordered at this point
+        self.blocks[self.nBlock] = b
+        
     def read_all(self):
         """
         Read all blocks in .dat
@@ -158,7 +171,7 @@ class Block(Common):
     def __init__(self, mmap, cursor, 
                  number=0, 
                  source='',
-                 verb=3):
+                 verb=4):
 
         # Starting from the given cursor position, read block
         self.start = cursor
@@ -175,8 +188,8 @@ class Block(Common):
         self.read_trans()
         
         self.end = self.cursor
-        print "{0}Block ends at: {1}".format(self.verb*" "*2,
-                                             self.end)
+        if self.verb>=3: print "{0}Block ends at: {1}".format(self.verb*" "*2,
+                                                              self.end)
         
         # Check size as expected
         self.verify()
@@ -243,7 +256,8 @@ class Block(Common):
         for t in range(self.nTransactions):
             
             # Make transaction objects and table
-            trans = Transaction(self.mmap, fr)
+            trans = Transaction(self.mmap, fr, 
+                                verb=self.verb)
             fr = trans.cursor
             self.trans.append(trans)
            
@@ -255,7 +269,6 @@ class Block(Common):
         End cursor position - cursor start position should match blockSize
         plus the 8 bytes for the magic number
         
-        
         TODO:
             - Add hash verify (or to BLK?)
         """
@@ -264,29 +277,30 @@ class Block(Common):
             raise BlockSizeMismatch
 
     def _print(self):
-        print "{0}{1}Read block{1}".format(self.verb*" "*2, 
-                                           "*"*10)
-        print "{0}Beginning at: {1}".format(self.verb*" "*2,
-                                            self.start)
-        print "{0}magic: {1}".format(self.verb*" "*2, 
-                                     self.magic)
-        print "{0}block_size: {1}".format(self.verb*" "*2, 
-                                          self.blockSize)
-        print "{0}version: {1}".format(self.verb*" "*2, 
-                                       self.version)
-        print "{0}prevHash: {1}".format(self.verb*" "*2, 
-                                        self.prevHash)
-        print "{0}merkle_root: {1}".format(self.verb*" "*2, 
-                                           self.merkleRootHash)
-        print "{0}timestamp: {1}: {2}".format(self.verb*" "*2, 
-                                         self.timestamp,
-                                         self.time)
-        print "{0}nBits: {1}".format(self.verb*" "*2, 
-                                     self.nBits)
-        print "{0}nonce: {1}".format(self.verb*" "*2, 
-                                     self.nonce)
-        print "{0}n transactions: {1}".format(self.verb*" "*2, 
-                                              self.nTransactions)
+        if self.verb>=3: 
+            print "{0}{1}Read block{1}".format(self.verb*" "*2, 
+                                               "*"*10)
+            print "{0}Beginning at: {1}".format(self.verb*" "*2,
+                                                self.start)
+            print "{0}magic: {1}".format(self.verb*" "*2, 
+                                         self.magic)
+            print "{0}block_size: {1}".format(self.verb*" "*2, 
+                                              self.blockSize)
+            print "{0}version: {1}".format(self.verb*" "*2, 
+                                           self.version)
+            print "{0}prevHash: {1}".format(self.verb*" "*2, 
+                                            self.prevHash)
+            print "{0}merkle_root: {1}".format(self.verb*" "*2, 
+                                               self.merkleRootHash)
+            print "{0}timestamp: {1}: {2}".format(self.verb*" "*2, 
+                                             self.timestamp,
+                                             self.time)
+            print "{0}nBits: {1}".format(self.verb*" "*2, 
+                                         self.nBits)
+            print "{0}nonce: {1}".format(self.verb*" "*2, 
+                                         self.nonce)
+            print "{0}n transactions: {1}".format(self.verb*" "*2, 
+                                                  self.nTransactions)
 
 
 class Transaction(Common):
@@ -299,6 +313,12 @@ class Transaction(Common):
         self.cursor = cursor
         self.mmap = mmap
         self.verb = verb
+        
+        # Get transaction info
+        self.get_transaction()
+        self._print()
+        
+    def get_transaction(self):
         
         # Read the version: 4 bytes
         self.version = self.read_next(4)
@@ -331,38 +351,39 @@ class Transaction(Common):
         # lock time: 4 bytes
         self.lockTime = self.read_next(4)
         
+        # Record end of transaction for debugging
         self.end = self.cursor
-        self._print()
-    
+        
     def _print(self):
-        print "{0}{1}Read transaction{1}".format(self.verb*" "*2, 
-                                                 "*"*10)
-        print "{0}Beginning at: {1}".format(self.verb*" "*2, 
-                                            self.start)
-        print "{0}Ending at: {1}".format(self.verb*" "*2, 
-                                         self.end) 
-        print "{0}Transaction version: {1}".format(self.verb*" "*2, 
-                                                   self.version)
-        print "{0}nInputs: {1}".format(self.verb*" "*2, 
-                                       self.nInputs)
-        print "{0}Prev output: {1}".format(self.verb*" "*2, 
-                                           self.prevOutput)
-        print "{0}Script length: {1}".format(self.verb*" "*2, 
-                                             self.scriptLength)
-        print "{0}Script sig: {1}".format(self.verb*" "*2, 
-                                          self.scriptSig)
-        print "{0}Sequence: {1}".format(self.verb*" "*2, 
-                                        self.sequence)
-        print "{0}Output: {1}".format(self.verb*" "*2, 
-                                      self.output)
-        print "{0}BTC value: ".format(self.verb*" "*2, 
-                                      self.value)
-        print "{0}pk script length: {1}".format(self.verb*" "*2, 
-                                                self.pkScriptLen)
-        print "{0}pk script: {1}".format(self.verb*" "*2, 
-                                         self.pkScript)
-        print "{0}lock time: {1}".format(self.verb*" "*2, 
-                                        self.lockTime ) 
+        if self.verb>=4: 
+            print "{0}{1}Read transaction{1}".format(self.verb*" "*2, 
+                                                     "*"*10)
+            print "{0}Beginning at: {1}".format(self.verb*" "*2, 
+                                                self.start)
+            print "{0}Ending at: {1}".format(self.verb*" "*2, 
+                                             self.end) 
+            print "{0}Transaction version: {1}".format(self.verb*" "*2, 
+                                                       self.version)
+            print "{0}nInputs: {1}".format(self.verb*" "*2, 
+                                           self.nInputs)
+            print "{0}Prev output: {1}".format(self.verb*" "*2, 
+                                               self.prevOutput)
+            print "{0}Script length: {1}".format(self.verb*" "*2, 
+                                                 self.scriptLength)
+            print "{0}Script sig: {1}".format(self.verb*" "*2, 
+                                              self.scriptSig)
+            print "{0}Sequence: {1}".format(self.verb*" "*2, 
+                                            self.sequence)
+            print "{0}Output: {1}".format(self.verb*" "*2, 
+                                          self.output)
+            print "{0}BTC value: ".format(self.verb*" "*2, 
+                                          self.value)
+            print "{0}pk script length: {1}".format(self.verb*" "*2, 
+                                                    self.pkScriptLen)
+            print "{0}pk script: {1}".format(self.verb*" "*2, 
+                                             self.pkScript)
+            print "{0}lock time: {1}".format(self.verb*" "*2, 
+                                            self.lockTime ) 
         
     def verify(self):
         """
@@ -376,7 +397,7 @@ if __name__=="__main__":
     #%% Load .dat
     
     f = 'Blocks/blk00000.dat'
-    blk = BLK(f)
+    blk = Dat(f, verb=4)
     
     
     #%% Read next block
@@ -384,7 +405,16 @@ if __name__=="__main__":
     blk.read_next_block()
 
 
-    #%%
-    c = Chain()
-    c.read_next_BLK()
+    #%% Read chain - 1 step
+    
+    c = Chain(verb=4)
+    c.read_next_Dat()
+    
+  
+   #%% Read chain - all (in range)
+    
+    c = Chain(verb=4, 
+              datStart=0, 
+              datn=3)
+    c.read_all()
     

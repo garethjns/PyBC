@@ -57,7 +57,7 @@ hash256(gbHeader)
 def rev_hex(h):
     """
     Reverse endedness of hex data by decoding to binary, reversing, 
-    and renecoding
+    and reencoding
     """
     return h.decode("hex")[::-1].encode("hex")
     
