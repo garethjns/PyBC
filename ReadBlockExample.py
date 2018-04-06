@@ -7,6 +7,7 @@ Created on Wed Apr 04 12:35:54 2018
 
 #%% Imports
 
+from datetime import datetime as dt
 import mmap # mutable string
 
 
@@ -39,7 +40,7 @@ def read_header(m, cursor):
     print 'magic: ' + magic
     
     # Read block size: 4 bytes
-    blockSize = read_next(m, cursor, 4)
+    blockSize = read_next(m, cursor, 4, rev=True)
     blockSize = int(blockSize, 16)
     cursor +=4
     print 'block_size: ' + str(blockSize)
@@ -60,14 +61,15 @@ def read_header(m, cursor):
     print 'merkle_root: ' + merkleRootHash
     
     # Read the time stamp: 32 bytes
-    timestamp = read_next(m, cursor, 4)
+    timestamp = read_next(m, cursor, 4, rev=True)
     cursor +=4
     print 'timestamp: ' + timestamp 
+    print 'times: ' + str(dt.fromtimestamp(int(timestamp, 16)))
     
     # Read the size: 4 bytes
-    nBits = read_next(m, cursor, 4)[::-1]
+    nBits = read_next(m, cursor, 4)
     cursor +=4
-    print 'nBits: ' + nBits
+    print 'nBits: ' +nBits
     
     # Read the nonce: 4 bytes
     nonce = read_next(m, cursor, 4)
@@ -105,7 +107,9 @@ def read_trans(m, cursor):
     
     # Read the script sig: Variable
     scriptSig = read_next(m, cursor, int(scriptLength, 16))
-    print "{0}-{1}: scriptSig: {2}".format(cursor, cursor+int(scriptLength, 16), scriptSig)
+    print "{0}-{1}: scriptSig: {2}".format(cursor, 
+                                           cursor+int(scriptLength, 16), 
+                                           scriptSig)
     cursor +=int(scriptLength, 16)
     
     # Read sequence: 4 bytes
@@ -129,7 +133,9 @@ def read_trans(m, cursor):
     cursor +=1
     
     pkScript = read_next(m, cursor, int(pkScriptLen, 16))
-    print "{0}-{1}: pkScript: {2}".format(cursor, cursor+int(pkScriptLen, 16), pkScript)
+    print "{0}-{1}: pkScript: {2}".format(cursor, 
+                                          cursor+int(pkScriptLen, 16), 
+                                          pkScript)
     cursor += int(pkScriptLen, 16)
     
     # lock time: 4 bytes
