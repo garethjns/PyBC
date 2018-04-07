@@ -98,10 +98,11 @@ class Chain(Common):
         """
         for fi in range(self.datStart, self.datStart+self.datn):
             d = self.readDat(datn=fi)
+            d.read_all()
             
             # For now:
             # Save dat contents to Chain (dats ordered, blocks not)
-            print d\
+            print d
             self.dats[self.datni] = d
             
             # TODO:
@@ -190,7 +191,7 @@ class Block(Common):
         self.end = self.cursor
         if self.verb>=3: print "{0}Block ends at: {1}".format(self.verb*" "*2,
                                                               self.end)
-        
+
         # Check size as expected
         self.verify()
         
@@ -251,7 +252,7 @@ class Block(Common):
         """
         Read transaction information in block
         """
-        self.trans = []
+        self.trans = {}
         fr = self.cursor
         for t in range(self.nTransactions):
             
@@ -259,7 +260,7 @@ class Block(Common):
             trans = Transaction(self.mmap, fr, 
                                 verb=self.verb)
             fr = trans.cursor
-            self.trans.append(trans)
+            self.trans[t] = trans
            
         self.cursor = fr
         
@@ -397,12 +398,12 @@ if __name__=="__main__":
     #%% Load .dat
     
     f = 'Blocks/blk00000.dat'
-    blk = Dat(f, verb=4)
+    dat = Dat(f, verb=4)
     
     
     #%% Read next block
     
-    blk.read_next_block()
+    dat.read_next_block()
 
 
     #%% Read chain - 1 step
@@ -418,3 +419,7 @@ if __name__=="__main__":
               datn=3)
     c.read_all()
     
+    
+    #%% Print example transaction
+    
+    c.dats[1].blocks[2].trans[0]._print()
