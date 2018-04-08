@@ -289,7 +289,7 @@ class Block(Common):
         # Read the time stamp: 32 bytes
         self._timestamp = self.read_next(4)
 
-        # Read the size: 4 bytes
+        # Read target difficulty: 4 bytes
         self._nBits = self.read_next(4)
         
         # Read the nonce: 4 bytes
@@ -385,19 +385,25 @@ class Transaction(Common):
     
     @property
     def scriptSig(self):
-        return self._scriptSig
+        """
+        Decode from hex
+        """
+        return self._scriptSig.decode("hex")
     
     @property
     def sequence(self):
         return self._sequence
     
     @property
-    def output(self):
-        return self._output
+    def nOutputs(self):
+        return self._nOutputs
     
     @property
     def value(self):
-        return self._value
+        """
+        Reverse endedness, convert to int from base 16, convert sat->btc
+        """
+        return int(rev_hex(self._value), 16)/100000000
     
     @property
     def pkScriptLen(self):
@@ -433,6 +439,7 @@ class Transaction(Common):
         # Read number of inputs: 1 Byte
         self._nInputs = self.read_next(1)
         
+        #TxIn:
         # Read the previous_output: 36 bytes
         self._prevOutput = self.read_next(36)
 
@@ -445,10 +452,11 @@ class Transaction(Common):
         # Read sequence: 4 bytes
         self._sequence = self.read_next(4)
         
-        # Read output: 1 byte
-        self._output = self.read_next(1)
+        # Read number of outputs: 1 byte
+        self._nOutputs = self.read_next(1)
         
-        # Read value: 8 bytes
+        # TxOut:
+        # Read value in Satoshis: 8 bytes
         self._value = self.read_next(8)
         
         # pk script
@@ -483,10 +491,10 @@ class Transaction(Common):
                                               self.scriptSig)
             print "{0}Sequence: {1}".format(self.verb*" "*2, 
                                             self.sequence)
-            print "{0}Output: {1}".format(self.verb*" "*2, 
-                                          self.output)
-            print "{0}BTC value: ".format(self.verb*" "*2, 
-                                          self.value)
+            print "{0}nOutputs: {1}".format(self.verb*" "*2, 
+                                           self.nOutputs)
+            print "{0}BTC value: {1}".format(self.verb*" "*2, 
+                                            self.value)
             print "{0}pk script length: {1}".format(self.verb*" "*2, 
                                                     self.pkScriptLen)
             print "{0}pk script: {1}".format(self.verb*" "*2, 
