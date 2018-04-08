@@ -45,7 +45,7 @@ c.read_all()
 Print example first transaction in second block in first .dat file imported.  
 
 ````Python
-c.dats[1].blocks[2].trans[0]._print()
+c.dats[0].blocks[1].trans[0]._print()
 ````
 
 ### Parameters

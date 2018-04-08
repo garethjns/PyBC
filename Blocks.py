@@ -70,7 +70,7 @@ class Chain(Common):
         self.datEnd = datStart+datn
         self.datPath = path
         self.verb = verb
-        self.datni = 0
+        self.datni = -1
         self.dats = {}
         self.on = datStart
     
@@ -119,7 +119,7 @@ class Dat(Common):
         self.reset()
         self.cursor = 0
         self.blocks = {}
-        self.nBlock = 0
+        self.nBlock = -1
         self.verb = verb
 
     def reset(self):
