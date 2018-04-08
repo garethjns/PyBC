@@ -167,7 +167,61 @@ class Dat(Common):
 class Block(Common):
     """
     Class representing single block (and transactions)
+    
+    Each part of the block header has a ._name attribute and a .name property. 
+    _.name is the hex decoded from binary.
+    .name is a get method which converts the ._name into a more readable/useful
+     format.
     """
+    @property
+    def magic(self):
+        return self._magic
+    
+    @property
+    def blockSize(self):
+        """
+        Reverse endedness, convert to int from base 16
+        """
+        return int(rev_hex(self._blockSize), 16)
+    
+    @property
+    def version(self):
+        return self._version
+    
+    @property
+    def prevHash(self):
+        return rev_hex(self._prevHash)
+    
+    @property
+    def merkleRootHash(self):
+        return self._merkleRootHash
+    
+    @property
+    def timestamp(self):
+        """
+        Convert to int from base 16
+        """
+        return int(rev_hex(self._timestamp), 16)
+    
+    @property
+    def time(self):
+        """
+        Doesn't have _time equivilent.
+        Reverse endedness, convert to int from base 16, convert to dt
+        """
+        return dt.fromtimestamp(int(rev_hex(self._timestamp), 16)) 
+
+    @property
+    def nBits(self):
+        return self._nBits
+    
+    @property
+    def nonce(self):
+        return self._nonce
+    
+    @property
+    def nTransactions(self):
+        return int(self._nTransactions)
     
     def __init__(self, mmap, cursor, 
                  number=0, 
@@ -204,49 +258,45 @@ class Block(Common):
         """
     
         # Collect header hex
-        header = self.version \
-                 + self.prevHash \
-                 + self.merkleRootHash \
-                 + rev_hex(self.timestamp) \
-                 + self.nBits \
-                 + self.nonce
+        header = self._version \
+                 + self._prevHash \
+                 + self._merkleRootHash \
+                 + self._timestamp \
+                 + self._nBits \
+                 + self._nonce
         
         return header.decode("hex") 
-
+    
     def read_header(self):
         """
-        Read the block header
+        Read the block header, store in ._name attributes
         """
-        
         # Read magic number: 4 bytes
-        self.magic = self.read_next(4)    
+        self._magic = self.read_next(4)    
         
         # Read block size: 4 bytes
-        self.blockSize = self.read_next(4, rev=True)
-        self.blockSize = int(self.blockSize, 16)
+        self._blockSize = self.read_next(4)
         
         # Read version: 4 bytes
-        self.version = self.read_next(4)
+        self._version = self.read_next(4)
         
         # Read the previous hash: 32 bytes
-        self.prevHash = self.read_next(32, rev=True)
+        self._prevHash = self.read_next(32)
         
         # Read the merkle root: 32 bytes
-        self.merkleRootHash = self.read_next(32)
+        self._merkleRootHash = self.read_next(32)
         
         # Read the time stamp: 32 bytes
-        self.timestamp = self.read_next(4, rev=True)
-        self.time = dt.fromtimestamp(int(self.timestamp, 16))
-        # self.time = 
-        
+        self._timestamp = self.read_next(4)
+
         # Read the size: 4 bytes
-        self.nBits = self.read_next(4)
+        self._nBits = self.read_next(4)
         
         # Read the nonce: 4 bytes
-        self.nonce = self.read_next(4)
+        self._nonce = self.read_next(4)
         
         # Read the number of transactions: 1 byte
-        self.nTransactions = int(self.read_next(1))
+        self._nTransactions = int(self.read_next(1))
         
     def read_trans(self):  
         """
@@ -306,8 +356,64 @@ class Block(Common):
 
 class Transaction(Common):
     """
-    Class representing single transaction
+    Class representing single transaction.
+    
+    Each part of the transaction has a ._name attribute and a .name property. 
+    _.name is the hex decoded from binary.
+    .name is a get method which converts the ._name into a more readable/useful
+     format.
     """
+    
+    @property
+    def version(self):
+        return self._version
+    
+    @property
+    def nInputs(self):
+        return self._nInputs
+    
+    @property
+    def prevOutput(self):
+        return self._prevOutput
+    
+    @property
+    def scriptLength(self):
+        """
+        Convert to int from base 16
+        """
+        return int(self._scriptLength, 16)
+    
+    @property
+    def scriptSig(self):
+        return self._scriptSig
+    
+    @property
+    def sequence(self):
+        return self._sequence
+    
+    @property
+    def output(self):
+        return self._output
+    
+    @property
+    def value(self):
+        return self._value
+    
+    @property
+    def pkScriptLen(self):
+        """
+        Convert to int from base 16
+        """
+        return int(self._pkScriptLen, 16)
+    
+    @property
+    def pkScript(self):
+        return self._pkScript
+    
+    @property
+    def lockTime(self):
+        return self._lockTime
+    
     def __init__(self, mmap, cursor,
                  verb=4):
         self.start = cursor
@@ -322,35 +428,37 @@ class Transaction(Common):
     def get_transaction(self):
         
         # Read the version: 4 bytes
-        self.version = self.read_next(4)
+        self._version = self.read_next(4)
         
         # Read number of inputs: 1 Byte
-        self.nInputs = self.read_next(1)
+        self._nInputs = self.read_next(1)
         
         # Read the previous_output: 36 bytes
-        self.prevOutput = self.read_next(36)
+        self._prevOutput = self.read_next(36)
 
         # Read the script length: 1 byte
-        self.scriptLength = self.read_next(1)
+        self._scriptLength = self.read_next(1)
 
         # Read the script sig: Variable
-        self.scriptSig = self.read_next(int(self.scriptLength, 16))
+        self._scriptSig = self.read_next(self.scriptLength)
         
         # Read sequence: 4 bytes
-        self.sequence = self.read_next(4)
+        self._sequence = self.read_next(4)
         
         # Read output: 1 byte
-        self.output = self.read_next(1)
+        self._output = self.read_next(1)
         
         # Read value: 8 bytes
-        self.value = self.read_next(8)
+        self._value = self.read_next(8)
         
         # pk script
-        self.pkScriptLen = self.read_next(1)
-        self.pkScript = self.read_next(int(self.pkScriptLen, 16))
+        self._pkScriptLen = self.read_next(1)
+        
+        # Read the script: Variable
+        self._pkScript = self.read_next(self.pkScriptLen)
         
         # lock time: 4 bytes
-        self.lockTime = self.read_next(4)
+        self._lockTime = self.read_next(4)
         
         # Record end of transaction for debugging
         self.end = self.cursor
