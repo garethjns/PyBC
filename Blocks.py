@@ -213,15 +213,31 @@ class Block(Common):
 
     @property
     def nBits(self):
-        return self._nBits
+        """
+        Reverse endedness, convert to int from base 16
+        """
+        return int(rev_hex(self.nBits), 16)
     
     @property
     def nonce(self):
-        return self._nonce
+        """
+        Reverse endedness, convert to int from base 16
+        """
+        return int(rev_hex(self._nonce), 16)
     
     @property
     def nTransactions(self):
         return int(self._nTransactions)
+    
+    @property
+    def txIn(self):
+        """
+        WIP
+        """
+        return {'prevOut': self.prevHash,
+                'scriptLen': self.scriptLength,
+                'sigScript' : self.sigScript,
+                'sequence': self.sequence}
     
     def __init__(self, mmap, cursor, 
                  number=0, 
@@ -388,7 +404,7 @@ class Transaction(Common):
         """
         Decode from hex
         """
-        return self._scriptSig.decode("hex")
+        return self._scriptSig#.decode("hex")
     
     @property
     def sequence(self):
@@ -419,6 +435,16 @@ class Transaction(Common):
     @property
     def lockTime(self):
         return self._lockTime
+    
+    @property
+    def txOut(self):
+        """
+        WIP
+        """
+        return {'value': self.value,
+                'pkScript': self.pkScript,
+                'pkScriptLen' : self.pkScriptLen,
+                'sequence': self.sequence}
     
     def __init__(self, mmap, cursor,
                  verb=4):
