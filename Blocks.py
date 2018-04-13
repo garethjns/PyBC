@@ -81,6 +81,7 @@ class Chain(Common):
         dat = self.readDat(datn=self.on)
         dat.read_all()
         
+        self.dats[self.on] = dat
         self.on+=1
         
     def readDat(self, datn):
@@ -216,7 +217,7 @@ class Block(Common):
         """
         Reverse endedness, convert to int from base 16
         """
-        return int(rev_hex(self.nBits), 16)
+        return int(rev_hex(self._nBits), 16)
     
     @property
     def nonce(self):
