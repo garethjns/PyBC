@@ -15,7 +15,9 @@ c = Chain(verb=4,
 c.read_next_Dat()
    
 
-#%%
+#%% Print the full transaction info of the only transaction in the genesis 
+# block
+# All the output information is in .pkScript
 
 c.dats[0].blocks[0].trans[0]._print()
 

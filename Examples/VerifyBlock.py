@@ -7,7 +7,7 @@ Created on Fri Apr 06 16:24:39 2018
 
 #%% Imports
 
-from Blocks import BLK
+from Blocks import Dat
 
 import hashlib
 import mmap 
@@ -74,7 +74,7 @@ def prep_header(block):
     header = block.version \
              + block.prevHash \
              + block.merkleRootHash \
-             + rev_hex(block.timestamp) \
+             + block.timestamp \
              + block.nBits \
              + block.nonce
     
