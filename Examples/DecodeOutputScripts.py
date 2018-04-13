@@ -7,12 +7,12 @@ import hashlib
 import base58
 
 
-#%% 
+#%% Import a block 
 
 c = Chain(verb=4, 
           datStart=0, 
           datn=3)
-c.read_all()
+c.read_next_Dat()
    
 
 #%%
@@ -20,10 +20,13 @@ c.read_all()
 c.dats[0].blocks[0].trans[0]._print()
 
 
-#%%
+#%% Function to split script in to components
 
 def split_script(pk_op):       
-    
+    """
+    Gievn hex encoded string, return list of op_codes and data to 
+    push to stack
+    """
     # Define the OP_CODES dict
     OP_CODES = {172: "OP_CHECKSIG",
                 118: "OP_DUP",
@@ -32,13 +35,13 @@ def split_script(pk_op):
     
     # Create list to store output script
     script = []
+    # Use cursor to track position in string
     cur = 0
     # Loop over raw script - increments 4 bytes each iteration
     # unless instructed otherwise
     while cur < len(pk_op):
         # Get the next 4 bytes
         # Convert to int in base 16
-        print cur
         op = int(pk_op[cur:cur+2], 16)
         
         # Incremenet the cursor by 4 bytes
@@ -61,7 +64,7 @@ script = split_script(c.dats[0].blocks[0].trans[0].pkScript)
 script
 
 
-#%%
+#%% Test on another script
 
 pk_op = '76a9141234567890123456789012345678901234567890ac'
 script = split_script(pk_op)
