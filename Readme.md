@@ -1,34 +1,59 @@
 # PyBc
 
-Bitcoin blockhain parsing in Python.
+Bitcoin blockhain parsing in Python. Using 2.7 at the moment but planning to also mak a 3.something version.
+
+The Examples/ directory contains the methods for importing the binary blocks into Python, and decoding the data. These examples form the basis of the classes contained in Blocks.py and functions in utils.py.
+
+Blocks.py contains classes to handle the chain, blocks and transactions (and also the .dat files created by the core wallet). There are examples of using each class at the end of this file.
+
+# Requirements
+## Environment
+ - Python 2.7
+ - base58
+ - hashlib
+ - mmap
+
+Something like this should do the trick in Anaconda:
+```Bash
+conda create -n BlockChain_env python=2.7 anaconda
+activate BlockChain_env
+pip install base58
+```
+## Blockcahin data
+ - Blockchain data in .dat files downloaded by the core wallet. Put these in the Blocks/ folder.
+
+There are a couple of zipped .dat files in Blocks/. Clone the repo then extract these for a few hundred blocks to play with.
 
 # Examples
 Examples/
 
-## Reading and decoding binary blocks
-**ReadBlockChain.py**
+This is the best place to start with understanding how to handle the blockchain. [See Examples/readme.md for more info.](https://github.com/garethjns/PyBC/blob/master/Examples/readme.md)
 
-Example of reading binary data from .dat files and converting it to hex and other formats. Uses mmap and functions to load byte by byte while tracking position. These form the basis of the reading methods in the Block and Trans classes.
-
-## Hashing and verifying blocks
-**VerifyBlockExample.py**
-
-Example of verifying block contents using SHA256 in hashlib. Gets the relevant bits of the block header, runs hash. These functions will form the basis of the verification functions in Block/Chain classes.
+There are currently 4 examples:  
+ - ReadBlocks
+ - VerifyBlocks
+ - DecodeOutputScripts
+ - GetOuputAddress
 
 # Classes
 
+All classes are currently in Blocks.py and handle different levels of the blockchain. There are some usage examples in this file too.
+
+(*The following will be true sometime in the future*)  
+Generally for classes that hold data, the binary data is stored in the appropriate .[name] attribute (eg., Block.prevHash). Each attribute has an associated property called ._[name] (eg., Block._prevHash) that converts the atrribute to a more useful/human readable form on the fly.
+
 ## Common
-Anything used in more than one class.
+Anything used in more than one class. 
 
 ### Attributes
-.cursor : Current cursor position in current file
+.cursor : Current cursor position in current file.
 ### Methods
 .read_next() : Read next n bytes from file - used in Block and Trans to read block headers and transaction data.
 
 ## Chain
 Object and methods to handle whole chain. At the moment .dat files are ordered, but blocks aren't re-ordered by timestamp. Order in .dat depends on download order.
 
-Each child object in chain is stored in appropriate field of parent object (.dats, .blocks, .trans). These fields contain dictionaries keyed by {object number (int, starting from 1) : Object}:  
+Each child object in chain is stored in appropriate field of parent object (.dats, .blocks, .trans). These fields contain dictionaries keyed by {object number (int, counting from 0) : Object}:  
 Chain.dats -> {Dat objects}.blocks -> {Block objects}.trans -> {Transaction objects}
 
 ### Usage
@@ -102,21 +127,23 @@ Object and methods to handle individual blocks.
 .end : End cursor position in .dat (int)  
 .trans : Dict storing transactions in block (dict)  
 
-**Header info** - Needs updating  
-.magic : Raw magic number (hex, 4 bytes)  
-.blockSize : Block size (hex -> reversed -> int, 4 bytes)  
-.version : Raw version (hex, 4 bytes)  
-.prevHash : Raw previous hash (hex -> reversed, 32 bytes)  
-.merkleRootHash : Raw Merkle root hash (hex, 32 bytes)  
-.timestamp : Raw timestamp (hex, 4 bytes)  
-.time : Human readable time (hex -> reversed -> int16 -> dt)  
-.nBits : Raw block size (hex, 4 bytes)  
-.nonce : Raw nonce (hex, 4 bytes)  
-.nTransactions : Raw number of transactions in block (hex -> int, 1 byte)  
+**Header info** (each has ._ property)   
+.magic : Magic number (4 bytes)  
+.blockSize : Block size (4 bytes)  
+.version : Version (4 bytes)    
+.prevHash : Previous hash (32 bytes)
+.merkleRootHash : Merkle root hash (32 bytes)  
+.timestamp : Timestamp (4 bytes)  
+.nBits : Block size (4 bytes)  
+.nonce : Nonce (4 bytes)    
+.nTransactions : Number of transactions in block (1 byte)  
+
+**Other helpful things**  
+.time : Human readable time (dt)
 
 ### Methods  
 .read_header() : Read the header from the binary file and convert to hex. Store in relevant attributes.  
-.read_trans() : Loop very .nTransactions and read each. Store in .trans.  
+.read_trans() : Loop over .nTransactions and read each transaction. Store in .trans.  
 .verify() : Check block size matches cursor distance traveled.  
 ._print() : Print block header info.  
 .prep_header() : Using the data stored in relevant header attributes, recombine and decode to binary ready for hashing.  
@@ -130,18 +157,18 @@ Object to store transaction information.
 .cursor : Current cursor position (int)  
 .end : End cursor position in .dat (int)  
 
-**Transaction info**  
-.version : Raw version (hex, 4 bytes)  
-.nInputs : Raw number of transaction inputs (hex, 1 byte)  
-.prevOutput : Raw previous output (hex, 36 bytes)  
-.scriptLength = Raw script lenfth (hex, 1 byte)  
-.scriptSig =  Raw scriptSig (hex, variable byes)  
-.sequence = Raw sequence (hex, 4 bytes)  
-.output = Raw transaction outputs (hex, 1 byte)  
-.value = Raw value in BTC (hex, 8 bytes)  
-.pkScriptLen = Raw pkScriptLen (hex, 1 byte)  
-.pkScript = Raw pkScript (hex, variable bytes)  
-.lockTime = Raw locktime (hex, 4 bytes)  
+**Transaction info**  (each has ._ property)  
+.version : Version (4 bytes)  
+.nInputs : Number of transaction inputs (1 byte)  
+.prevOutput : Previous output (36 bytes)  
+.scriptLength = Script lenfth (1 byte)  
+.scriptSig =  ScriptSig (variable byes)  
+.sequence = Sequence (4 bytes)  
+.output = Transaction outputs (1 byte)  
+.value = Value in Satoshis (8 bytes)  
+.pkScriptLen = pkScriptLen (1 byte)  
+.pkScript = pkScript - contains output address (variable bytes)  
+.lockTime = Locktime (4 bytes)  
 
 
 ### Methods

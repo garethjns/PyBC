@@ -76,7 +76,7 @@ class Chain(Common):
     
     def read_next_Dat(self):
         """
-        Read next blk, track progress. Can move past specified end.
+        Read next .dat, track progress. Can move past specified end.
         """
         dat = self.readDat(datn=self.on)
         dat.read_all()
@@ -111,8 +111,8 @@ class Chain(Common):
 
 class Dat(Common):
     """
-    Class to represent .blk file on disk.
-    Opens and maps blk ready for reading
+    Class to represent .dat file on disk.
+    Opens and maps .dat ready for reading
     """
     def __init__(self, f, 
                  verb=4):
@@ -126,9 +126,12 @@ class Dat(Common):
     def reset(self):
         """
         Open file, map, reset cursor
+        
+        TODO:
+            - Test this function, might need updating
         """
-        self.blk = open(self.f, 'rb')
-        self.mmap = mmap.mmap(self.blk.fileno(), 0, access=mmap.ACCESS_READ) 
+        self.dat = open(self.f, 'rb')
+        self.mmap = mmap.mmap(self.dat.fileno(), 0, access=mmap.ACCESS_READ) 
         self.cursor = 0
         
     def read_next_block(self):
@@ -338,7 +341,7 @@ class Block(Common):
         plus the 8 bytes for the magic number
         
         TODO:
-            - Add hash verify (or to BLK?)
+            - Add hash verify (or to Dat or Chain?)
         """
         # Block size check
         if (self.end - self.start) != (self.blockSize + 8):
