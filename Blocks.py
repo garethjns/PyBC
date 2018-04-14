@@ -26,7 +26,7 @@ class Common():
     Functions common to Block, Transaction
     """
     def read_next(self, length, 
-                  asHex=True, 
+                  asHex=False, 
                   rev=False, 
                   pr=True):
         """
@@ -148,6 +148,9 @@ class Dat(Common):
         # Save block dat object - unordered at this point
         self.blocks[self.nBlock] = b
         
+        if self.verb==2:
+            print "{0}Read block {1}".format(self.verb*" "*2, self.nBlock)
+                   
     def read_all(self):
         """
         Read all blocks in .dat
@@ -179,69 +182,75 @@ class Block(Common):
     """
     @property
     def magic(self):
-        return self._magic
+        """
+        Convert to hex
+        """
+        return self._magic.encode("hex")
     
     @property
     def blockSize(self):
         """
-        Reverse endedness, convert to int from base 16
+        Reverse endedness, convert to hex, convert to int from base 16
         """
-        return int(rev_hex(self._blockSize), 16)
+        return int(self._blockSize[::-1].encode("hex"), 16)
     
     @property
     def version(self):
-        return self._version
+        """
+        Convert to hex
+        """
+        return self._version.encode("hex")
     
     @property
     def prevHash(self):
-        return rev_hex(self._prevHash)
+        """
+        Reverse, convert to hex
+        """
+        return self._prevHash[::-1].encode("hex")
     
     @property
     def merkleRootHash(self):
-        return self._merkleRootHash
+        """
+        Convert to hex
+        """
+        return self._merkleRootHash.encode("hex")
     
     @property
     def timestamp(self):
         """
         Convert to int from base 16
         """
-        return int(rev_hex(self._timestamp), 16)
+        return int(self._timestamp[::-1].encode("hex"), 16)
     
     @property
     def time(self):
         """
         Doesn't have _time equivilent.
-        Reverse endedness, convert to int from base 16, convert to dt
+        Reverse endedness, convert to hex, convert to int from base 16, 
+        convert to dt
         """
-        return dt.fromtimestamp(int(rev_hex(self._timestamp), 16)) 
+        return dt.fromtimestamp(int(self._timestamp[::-1].encode("hex"), 16)) 
 
     @property
     def nBits(self):
         """
-        Reverse endedness, convert to int from base 16
+        Reverse endedness, convert to hex, convert to int from base 16
         """
-        return int(rev_hex(self._nBits), 16)
+        return int(self._nBits[::-1].encode("hex"), 16)
     
     @property
     def nonce(self):
         """
-        Reverse endedness, convert to int from base 16
+        Reverse endedness, convert to hex, convert to int from base 16
         """
-        return int(rev_hex(self._nonce), 16)
+        return int(self._nonce[::-1].encode("hex"), 16)
     
     @property
     def nTransactions(self):
+        """
+        Convert to int
+        """
         return int(self._nTransactions)
-    
-    @property
-    def txIn(self):
-        """
-        WIP
-        """
-        return {'prevOut': self.prevHash,
-                'scriptLen': self.scriptLength,
-                'sigScript' : self.sigScript,
-                'sequence': self.sequence}
     
     def __init__(self, mmap, cursor, 
                  number=0, 
@@ -316,7 +325,7 @@ class Block(Common):
         self._nonce = self.read_next(4)
         
         # Read the number of transactions: 1 byte
-        self._nTransactions = int(self.read_next(1))
+        self._nTransactions = self.read_next(1)
         
     def read_trans(self):  
         """
@@ -348,6 +357,7 @@ class Block(Common):
             raise BlockSizeMismatch
 
     def _print(self):
+        
         if self.verb>=3: 
             print "{0}{1}Read block{1}".format(self.verb*" "*2, 
                                                "*"*10)
@@ -386,60 +396,92 @@ class Transaction(Common):
     
     @property
     def version(self):
-        return self._version
+        """
+        Convert to hex
+        """
+        return self._version.encode("hex")
     
     @property
     def nInputs(self):
-        return self._nInputs
+        """
+        Convert to hex
+        """
+        return self._nInputs.encode("hex")
     
     @property
     def prevOutput(self):
-        return self._prevOutput
+        """
+        Convert to hex
+        """
+        return self._prevOutput.encode("hex")
     
     @property
     def scriptLength(self):
         """
-        Convert to int from base 16
+        Convert to hex, convert to int from base 16
         """
-        return int(self._scriptLength, 16)
+        return int(self._scriptLength.encode("hex"), 16)
     
     @property
     def scriptSig(self):
         """
-        Decode from hex
+        Convert to hex
         """
-        return self._scriptSig#.decode("hex")
+        return self._scriptSig.encode("hex")
     
     @property
     def sequence(self):
-        return self._sequence
+        """
+        Convert to hex
+        """
+        return self._sequence.encode("hex")
     
     @property
     def nOutputs(self):
-        return self._nOutputs
+        """
+        Convert to hex
+        """
+        return self._nOutputs.encode("hex")
     
     @property
     def value(self):
         """
-        Reverse endedness, convert to int from base 16, convert sat->btc
+        Reverse endedness, convert to hexconvert to int from base 16,
+        convert sat->btc
         """
-        return int(rev_hex(self._value), 16)/100000000
+        return int(self._value[::-1].encode("hex"), 16)/100000000
     
     @property
     def pkScriptLen(self):
         """
-        Convert to int from base 16
+        Convert to hex, convert to int from base 16
         """
-        return int(self._pkScriptLen, 16)
+        return int(self._pkScriptLen.encode("hex"), 16)
     
     @property
     def pkScript(self):
-        return self._pkScript
+        """
+        Convert to hex
+        """
+        return self._pkScript.encode("hex")
     
     @property
     def lockTime(self):
-        return self._lockTime
+        """
+        Convert to hex
+        """
+        return self._lockTime.encode("hex")
     
+    @property
+    def txIn(self):
+        """
+        WIP
+        """
+        return {'prevOut': self.prevHash,
+                'scriptLen': self.scriptLength,
+                'sigScript' : self.sigScript,
+                'sequence': self.sequence}
+        
     @property
     def txOut(self):
         """
@@ -543,8 +585,8 @@ if __name__=="__main__":
     
     #%% Load .dat
     
-    f = 'Blocks/blk00000.dat'
-    dat = Dat(f, verb=4)
+    f = 'Blocks/blk00001.dat'
+    dat = Dat(f, verb=2)
     
     
     #%% Read next block
@@ -560,13 +602,13 @@ if __name__=="__main__":
   
    #%% Read chain - all (in range)
     
-    c = Chain(verb=4, 
+    c = Chain(verb=2, 
               datStart=0, 
               datn=3)
     c.read_all()
     
     
-    #%% Print example transaction
+        #%% Print example transaction
     
     c.dats[1].blocks[2].trans[0]._print()
     
