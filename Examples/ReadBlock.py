@@ -8,15 +8,20 @@ Created on Wed Apr 04 12:35:54 2018
 # %% Imports
 
 from datetime import datetime as dt
-import mmap  # mutable string
+import mmap
 
 
 # %% Functions
 
-def read_next(m, cursor, length,
+def read_next(m, cursor,
+              length=None,
               asHex=True,
               rev=False,
-              pr=True):
+              pr=False):
+    """
+    Read next input with specified length
+    """
+
     start = cursor
     end = cursor + length
     out = m[start:end]
@@ -33,7 +38,60 @@ def read_next(m, cursor, length,
     return out
 
 
+def read_var(m, cursor):
+    """
+    Read next variable length input. These are described in specifiction:
+    https://en.bitcoin.it/wiki/Protocol_documentation#Variable_length_integer
+
+    Retuns output and number of steps taken by cursor
+    """
+
+    # Get the next byte
+    by = ord(m[cursor:cursor+1])
+    cursor += 1
+    steps = 1
+
+    if by < 253:  # 0xfd
+        # Return as is
+        # by is already int here
+        out = by
+    elif by == 253:
+        # Read next 2 bytes
+        # Reverse endedness
+        # Convert to int in base 16
+        out = int(read_next(m, cursor, 2, rev=True), 16)
+        steps += 2
+    elif by == 254:  # 0xfe
+        # Read next 4 bytes, convert as above
+        out = int(read_next(m, cursor, 4, rev=True), 16)
+        steps += 4
+    elif by == 255:  # 0xff
+        # Read next 8 bytes, convert as above
+        out = int(read_next(m, cursor, 8, rev=True), 16)
+        steps += 8
+
+    return out, steps
+
+
 def read_header(m, cursor):
+    """
+    Read:
+        - Block header:
+            - Magic number
+            - Block size
+            - Version
+            - Previous hash
+            - Merkle root hash
+            - Timestamp
+            - Size
+            - Nonce
+        - Number of transactions in the bock
+
+    Note here this function only returns cursor position and the number of
+    transactions to read with read_trans. The rest of the information is just
+    printed.
+    In the Block class this information will be saved to the object.
+    """
     print cursor
     # Read magic number: 4 bytes
     magic = read_next(m, cursor, 4)
@@ -77,10 +135,9 @@ def read_header(m, cursor):
     cursor += 4
     print 'nonce: ' + nonce
 
-    # Read the number of transactions: 1 byte
-    nT = read_next(m, cursor, 1)
-    nTransactions = int(nT)
-    cursor += 1
+    # Read the number of transactions: varint (1-9 bytes)
+    nTransactions, steps = read_var(m, cursor)
+    cursor += steps
     print 'n transactions: ' + str(nTransactions)
 
     print cursor
@@ -88,61 +145,98 @@ def read_header(m, cursor):
 
 
 def read_trans(m, cursor):
+    """
+    Read transaction header (just version) and inputs and outputs.
+
+    Note here this function only returns cursor position and prints the other
+    information. In the transaction class this information will be saved to
+    the object.
+    """
     tVersion = read_next(m, cursor, 4)
-    print "{0}-{1}: Version: {2}".format(cursor, cursor+4, tVersion)
+    print "  {0}-{1}: Version: {2}".format(cursor, cursor+4, tVersion)
     cursor += 4
 
-    # Read number of inputs: 1 Byte
-    nInputs = read_next(m, cursor, 1)
-    print "{0}-{1}: nInputs: {2}".format(cursor, cursor+1, nInputs)
-    cursor += 1
+    # Read number of inputs: varint (1-9 bytes)
+    nInputs, steps = read_var(m, cursor)
+    print "  {0}-{1}: nInputs: {2}".format(cursor, cursor+1, nInputs)
+    cursor += steps
 
-    # Read the previous_output: 36 bytes
-    prevOutput = read_next(m, cursor, 36)
-    print "{0}-{1}: prevOutput: {2}".format(cursor, cursor+36, prevOutput)
-    cursor += 36
+    # Read each input
+    inputs = []
+    for inp in range(nInputs):
+        # Read the inputs (previous_outputs): 36 bytes each
+        prevOutput = read_next(m, cursor, 36)
+        print "    {0}-{1}: prevOutput: {2}".format(cursor,
+                                                    cursor+36,
+                                                    prevOutput)
+        cursor += 36
 
-    # Read the script length: 1 byte
-    scriptLength = read_next(m, cursor, 1)
-    print "{0}-{1}: scriptLength: {2}".format(cursor, cursor+1, scriptLength)
-    cursor += 1
+        # Read the script length: 1 byte
+        scriptLength = read_next(m, cursor, 1)
+        print "    {0}-{1}: scriptLength: {2}".format(cursor,
+                                                      cursor+1,
+                                                      scriptLength)
+        cursor += 1
 
-    # Read the script sig: Variable
-    scriptSig = read_next(m, cursor, int(scriptLength, 16))
-    print "{0}-{1}: scriptSig: {2}".format(cursor,
-                                           cursor+int(scriptLength, 16),
-                                           scriptSig)
-    cursor += int(scriptLength, 16)
+        # Read the script sig: Variable
+        scriptSig = read_next(m, cursor, int(scriptLength, 16))
+        print "    {0}-{1}: scriptSig: {2}".format(cursor,
+                                                   cursor+int(scriptLength,
+                                                              16),
+                                                   scriptSig)
+        cursor += int(scriptLength, 16)
 
-    # Read sequence: 4 bytes
-    sequence = read_next(m, cursor, 4)
-    print "{0}-{1}: sequence: {2}".format(cursor, cursor+1, sequence)
-    cursor += 4
+        # Read sequence: 4 bytes
+        sequence = read_next(m, cursor, 4)
+        print "    {0}-{1}: sequence: {2}".format(cursor, cursor+1, sequence)
+        cursor += 4
 
-    # Read output: 1 byte
-    output = read_next(m, cursor, 1)
-    print "{0}-{1}: output: {2}".format(cursor, cursor+1, output)
-    cursor += 1
+        # Compile input info
+        txIn = {'n': inp,
+                'scriptLength': scriptLength,
+                'scriptSig': scriptSig,
+                'sequence': sequence}
 
-    # Read value: 8 bytes
-    value = read_next(m, cursor, 8)
-    print "{0}-{1}: output: {2}".format(cursor, cursor+8, value)
-    cursor += 8
+        # Collect into list of inputs
+        inputs.append(txIn)
 
-    # pk script
-    pkScriptLen = read_next(m, cursor, 1)
-    print "{0}-{1}: pkScriptLen: {2}".format(cursor, cursor+1, pkScriptLen)
-    cursor += 1
+    # Read number of outputs:  varint (1-9 bytes)
+    nOutputs, steps = read_var(m, cursor)
+    print "  {0}-{1}: nOutputs: {2}".format(cursor, cursor+1, nOutputs)
+    cursor += steps
 
-    pkScript = read_next(m, cursor, int(pkScriptLen, 16))
-    print "{0}-{1}: pkScript: {2}".format(cursor,
-                                          cursor+int(pkScriptLen, 16),
-                                          pkScript)
-    cursor += int(pkScriptLen, 16)
+    outputs = []
+    for oup in range(nOutputs):
+        # Read value: 8 bytes
+        value = read_next(m, cursor, 8)
+        print "    {0}-{1}: output value: {2}".format(cursor, cursor+8, value)
+        cursor += 8
+
+        # pk script
+        pkScriptLen = read_next(m, cursor, 1)
+        print "    {0}-{1}: pkScriptLen: {2}".format(cursor,
+                                                     cursor+1,
+                                                     pkScriptLen)
+        cursor += 1
+
+        pkScript = read_next(m, cursor, int(pkScriptLen, 16))
+        print "    {0}-{1}: pkScript: {2}".format(cursor,
+                                                  cursor+int(pkScriptLen, 16),
+                                                  pkScript)
+        cursor += int(pkScriptLen, 16)
+
+        # Compile output info
+        txOut = {'n': oup,
+                 'value': value,
+                 'pkScript ': pkScript,
+                 'sequence': sequence}
+
+        # Add to list of outputs
+        outputs.append(txOut)
 
     # lock time: 4 bytes
     lockTime = read_next(m, cursor, 4)
-    print "{0}-{1}: lockTime: {2}".format(cursor, cursor+4, lockTime)
+    print "  {0}-{1}: lockTime: {2}".format(cursor, cursor+4, lockTime)
     cursor += 4
 
     return cursor
@@ -165,8 +259,12 @@ for t in range(nTransactions):
     print "\nTRANSACTION {0}/{1}".format(t+1, nTransactions)
     cursor = read_trans(m, cursor)
 
+print "\nExpected {0}, and read {1} transactions read from block 1".format(
+        nTransactions, t+1)
+
 
 # %% Second block
+# Cursor position and block count continue from cell above
 
 block += 1
 print "\n\nBlock {0}".format(block)
@@ -175,10 +273,21 @@ for t in range(nTransactions):
     print "\nTRANSACTION {0}/{1}".format(t+1, nTransactions)
     cursor = read_trans(m, cursor)
 
+print "\nExpected {0}, and read {1} transactions read from block 2".format(
+        nTransactions, t+1)
+
 
 # %% All blocks in .dat
+# Cursor position and block count reset here
+# Not sure what happens at the end of the .dat yet.
+# When indexing mmap object (m) with range that's out of range (ie m[i:ix],
+# where i and/or ix are >len(m)), '' appears to be returned.
+# If trying to access a single value at index >len(m) an error is raised:
+# IndexError: mmap index out of range
+# If no error is raised here (there shouldn't be if code is working and
+# above is indeed true), be aware that the while loop will be infinite...
 
-f = 'Blocks/blk00000.dat'
+f = 'Blocks/blk00001.dat'
 blk = open(f, 'rb')
 m = mmap.mmap(blk.fileno(), 0, access=mmap.ACCESS_READ)
 
@@ -187,12 +296,19 @@ cursor = 0
 more = True
 while more:
     cursor, nTransactions = read_header(m, cursor)
+    block += 1
     for t in range(nTransactions):
         print "\nTRANSACTION {0}/{1}".format(t+1, nTransactions)
         cursor = read_trans(m, cursor)
 
+# This line probably won't run at the moment
+print "\nExpected {0}, and read {1} transactions read from {2} blocks".format(
+        nTransactions, t+1, block)
+
 
 # %% All (3) .dats
+# Parse all available .dat files. This probably won't get past the first .dat
+# at the moment for the reasons above.
 
 tRead = 0
 bRead = 0
@@ -207,18 +323,14 @@ for dat in range(1):
     cursor = 0
     more = True
     while more:
-        try:
-            cursor, nTransactions = read_header(m, cursor)
-            bRead += 1
-            for t in range(nTransactions):
-                print "\nTRANSACTION {0}/{1}".format(t+1, nTransactions)
-                cursor = read_trans(m, cursor)
+        cursor, nTransactions = read_header(m, cursor)
+        bRead += 1
+        for t in range(nTransactions):
+            print "\nTRANSACTION {0}/{1}".format(t+1, nTransactions)
+            cursor = read_trans(m, cursor)
 
-                tRead += 1
-        except:
-            print "End of .dat (?)"
-            more = False
-            dRead += 1
+            tRead += 1
+
 
 print "\n\nRead {0} transactions from {1} blocks stored in {2} files".format(
                                     tRead, bRead, dRead)
