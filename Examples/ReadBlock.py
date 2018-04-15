@@ -280,8 +280,8 @@ def read_trans(m, cursor,
         # Compile output info
         txOut = {'n': oup,
                  'value': value,
-                 'pkScript ': pkScript,
-                 'sequence': sequence}
+                 'pkScriptLen': pkScriptLen,
+                 'pkScript ': pkScript}
 
         # Add to list of outputs
         outputs.append(txOut)
@@ -297,7 +297,7 @@ def read_trans(m, cursor,
 
 # %% Load .dat
 
-f = 'Blocks/blk00000.dat'
+f = 'Blocks/blk00001.dat'
 blk = open(f, 'rb')
 m = mmap.mmap(blk.fileno(), 0, access=mmap.ACCESS_READ)
 
@@ -359,7 +359,7 @@ while cursor < len(m):
         totalTrans += 1
     print "  Transactions read: {0}/{1}".format(t+1, nTransactions)
 
-print "\Read {0} transactions read from {1} blocks".format(
+print "\nRead {0} transactions read from {1} blocks".format(
                             totalTrans, block)
 
 
