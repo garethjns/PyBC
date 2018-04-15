@@ -237,6 +237,7 @@ def read_trans(m, cursor,
 
         # Compile input info
         txIn = {'n': inp,
+                'prevOutput': prevOutput,
                 'scriptLength': scriptLength,
                 'scriptSig': scriptSig,
                 'sequence': sequence}
@@ -266,7 +267,6 @@ def read_trans(m, cursor,
             print "    {0}-{1}: pkScriptLen: {2}".format(cursor,
                                                          cursor+1,
                                                          pkScriptLen)
-
         cursor += 1
 
         pkScript = read_next(m, cursor, int(pkScriptLen, 16))
@@ -297,7 +297,7 @@ def read_trans(m, cursor,
 
 # %% Load .dat
 
-f = 'Blocks/blk00001.dat'
+f = 'Blocks/blk00000.dat'
 blk = open(f, 'rb')
 m = mmap.mmap(blk.fileno(), 0, access=mmap.ACCESS_READ)
 

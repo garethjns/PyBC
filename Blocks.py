@@ -217,6 +217,33 @@ class Block(Common):
     .name is a get method which converts the ._name into a more readable/useful
      format.
     """
+    def __init__(self, mmap, cursor,
+                 number=0,
+                 source='',
+                 verb=4):
+
+        # Starting from the given cursor position, read block
+        self.start = cursor
+        self.cursor = cursor
+        self.mmap = mmap
+        self.number = number
+        self.verb = verb
+
+        # Read header
+        self.read_header()
+        self._print()
+
+        # Read transactions
+        self.read_trans()
+
+        self.end = self.cursor
+        if self.verb >= 3:
+            print "{0}Block ends at: {1}".format(self.verb*" "*2,
+                                                 self.end)
+
+        # Check size as expected
+        self.verify()
+
     @property
     def magic(self):
         """
@@ -289,33 +316,6 @@ class Block(Common):
         Convert to int
         """
         return ord(self._nTransactions)
-
-    def __init__(self, mmap, cursor,
-                 number=0,
-                 source='',
-                 verb=4):
-
-        # Starting from the given cursor position, read block
-        self.start = cursor
-        self.cursor = cursor
-        self.mmap = mmap
-        self.number = number
-        self.verb = verb
-
-        # Read header
-        self.read_header()
-        self._print()
-
-        # Read transactions
-        self.read_trans()
-
-        self.end = self.cursor
-        if self.verb >= 3:
-            print "{0}Block ends at: {1}".format(self.verb*" "*2,
-                                                 self.end)
-
-        # Check size as expected
-        self.verify()
 
     def prep_header(self):
         """
@@ -398,28 +398,28 @@ class Block(Common):
     def _print(self):
 
         if self.verb >= 3:
-            print "{0}{1}Read block{1}".format(self.verb*" "*2,
+            print "{0}{1}Read block{1}".format(3*" "*2,
                                                "*"*10)
-            print "{0}Beginning at: {1}".format(self.verb*" "*2,
+            print "{0}Beginning at: {1}".format(3*" "*2,
                                                 self.start)
-            print "{0}magic: {1}".format(self.verb*" "*2,
+            print "{0}magic: {1}".format(3*" "*2,
                                          self.magic)
-            print "{0}block_size: {1}".format(self.verb*" "*2,
+            print "{0}block_size: {1}".format(3*" "*2,
                                               self.blockSize)
-            print "{0}version: {1}".format(self.verb*" "*2,
+            print "{0}version: {1}".format(3*" "*2,
                                            self.version)
-            print "{0}prevHash: {1}".format(self.verb*" "*2,
+            print "{0}prevHash: {1}".format(3*" "*2,
                                             self.prevHash)
-            print "{0}merkle_root: {1}".format(self.verb*" "*2,
+            print "{0}merkle_root: {1}".format(3*" "*2,
                                                self.merkleRootHash)
-            print "{0}timestamp: {1}: {2}".format(self.verb*" "*2,
+            print "{0}timestamp: {1}: {2}".format(3*" "*2,
                                                   self.timestamp,
                                                   self.time)
-            print "{0}nBits: {1}".format(self.verb*" "*2,
+            print "{0}nBits: {1}".format(3*" "*2,
                                          self.nBits)
-            print "{0}nonce: {1}".format(self.verb*" "*2,
+            print "{0}nonce: {1}".format(3*" "*2,
                                          self.nonce)
-            print "{0}n transactions: {1}".format(self.verb*" "*2,
+            print "{0}n transactions: {1}".format(3*" "*2,
                                                   self.nTransactions)
 
 
@@ -510,19 +510,25 @@ class Transaction(Common):
 
     def _print(self):
         if self.verb >= 4:
-            print "{0}{1}Read transaction{1}".format(self.verb*" "*2,
+            print "{0}{1}Read transaction{1}".format(4*" "*2,
                                                      "*"*10)
-            print "{0}Beginning at: {1}".format(self.verb*" "*2,
+            print "{0}Beginning at: {1}".format(4*" "*2,
                                                 self.start)
-            print "{0}Ending at: {1}".format(self.verb*" "*2,
+            print "{0}Ending at: {1}".format(4*" "*2,
                                              self.end)
-            print "{0}Transaction version: {1}".format(self.verb*" "*2,
+            print "{0}Transaction version: {1}".format(4*" "*2,
                                                        self.version)
-            print "{0}nInputs: {1}".format(self.verb*" "*2,
+            print "{0}nInputs: {1}".format(4*" "*2,
                                            self.nInputs)
-            print "{0}nOutputs: {1}".format(self.verb*" "*2,
+            # Print inputs
+            for inp in self.txIn:
+                inp._print()
+            print "{0}nOutputs: {1}".format(4*" "*2,
                                             self.nOutputs)
-            print "{0}lock time: {1}".format(self.verb*" "*2,
+            # Print outputs
+            for oup in self.txOut:
+                oup._print()
+            print "{0}lock time: {1}".format(4*" "*2,
                                              self.lockTime)
 
 
@@ -540,9 +546,6 @@ class TxIn(Common):
         self.cursor = cursor
         # Read the input data
         self.read_in()
-
-        # Print
-        self._print()
 
     @property
     def prevOutput(self):
@@ -588,13 +591,13 @@ class TxIn(Common):
 
     def _print(self):
         if self.verb >= 5:
-            print "{0}Prev output: {1}".format(self.verb*" "*2,
+            print "{0}Prev output: {1}".format(5*" "*2,
                                                self.prevOutput)
-            print "{0}Script length: {1}".format(self.verb*" "*2,
+            print "{0}Script length: {1}".format(5*" "*2,
                                                  self.scriptLength)
-            print "{0}Script sig: {1}".format(self.verb*" "*2,
+            print "{0}Script sig: {1}".format(5*" "*2,
                                               self.scriptSig)
-            print "{0}Sequence: {1}".format(self.verb*" "*2,
+            print "{0}Sequence: {1}".format(5*" "*2,
                                             self.sequence)
 
 
@@ -613,9 +616,6 @@ class TxOut(Common):
 
         # Read the output data
         self.read_out()
-
-        # Print
-        self._print()
 
     @property
     def value(self):
@@ -655,11 +655,11 @@ class TxOut(Common):
 
     def _print(self):
         if self.verb >= 5:
-            print "{0}BTC value: {1}".format(self.verb*" "*2,
+            print "{0}BTC value: {1}".format(5*" "*2,
                                              self.value)
-            print "{0}pk script length: {1}".format(self.verb*" "*2,
+            print "{0}pk script length: {1}".format(5*" "*2,
                                                     self.pkScriptLen)
-            print "{0}pk script: {1}".format(self.verb*" "*2,
+            print "{0}pk script: {1}".format(5*" "*2,
                                              self.pkScript)
 
 
