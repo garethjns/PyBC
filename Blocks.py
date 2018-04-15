@@ -6,7 +6,7 @@
 # %% Imports
 
 from datetime import datetime as dt
-from utils import rev_hex
+# from utils import rev_hex
 import mmap
 
 
@@ -29,7 +29,7 @@ class Common():
     def read_next(self, length,
                   asHex=False,
                   rev=False,
-                  pr=True):
+                  pr=False):
         """
         Read from self.cursor to self.cursor + length
         """
@@ -54,6 +54,42 @@ class Common():
 
         # Update cursor position
         self.cursor = end
+
+        return out
+
+    def read_var(self,
+                 pr=False):
+        """
+        Read next variable length input. These are described in specifiction:
+        https://en.bitcoin.it/wiki/Protocol_documentation#Variable_length_integer
+
+        Retuns output and number of steps taken by cursor
+        """
+
+        # Get the next byte
+        by = self.read_next(1)
+        o = ord(by)
+        if pr:
+            print by
+
+        if o < 253:
+            # Return as is
+            # by is already int here
+            out = by
+        elif o == 253:  # 0xfd
+            # Read next 2 bytes
+            # Reverse endedness
+            # Convert to int in base 16
+            out = self.read_next(2)
+        elif o == 254:  # 0xfe
+            # Read next 4 bytes, convert as above
+            out = self.read_next(4)
+        elif o == 255:  # 0xff
+            # Read next 8 bytes, convert as above
+            out = self.read_next(8)
+
+        if pr:
+            print int(out[::-1].encode("hex"), 16)
 
         return out
 
@@ -159,22 +195,18 @@ class Dat(Common):
     def read_all(self):
         """
         Read all blocks in .dat
-
-        TODO:
-            - Replace Try/except with end check
         """
-        more = True
-        while more:
-            try:
-                self.read_next_block()
-            except BlockSizeMismatch:
-                more = False
-            except:
-                print "End of .dat (?)"
-                more = False
+        nBlock = 0
+        while self.cursor < len(self.mmap):
+            self.read_next_block()
+            nBlock += 1
+
+        if self.verb >= 2:
+            print "\nRead {0} blocks".format(nBlock)
 
 
 # %% Low level classes
+
 
 class Block(Common):
     """
@@ -253,9 +285,10 @@ class Block(Common):
     @property
     def nTransactions(self):
         """
+        Variable length
         Convert to int
         """
-        return int(self._nTransactions.encode("hex"))
+        return ord(self._nTransactions)
 
     def __init__(self, mmap, cursor,
                  number=0,
@@ -330,8 +363,8 @@ class Block(Common):
         # Read the nonce: 4 bytes
         self._nonce = self.read_next(4)
 
-        # Read the number of transactions: 1 byte
-        self._nTransactions = self.read_next(1)
+        # Read the number of transactions: VarInt 1-9 bytes
+        self._nTransactions = self.read_var()
 
     def read_trans(self):
         """
@@ -359,8 +392,8 @@ class Block(Common):
             - Add hash verify (or to Dat or Chain?)
         """
         # Block size check
-        if (self.end - self.start) != (self.blockSize + 8):
-            raise BlockSizeMismatch
+        # if (self.end - self.start) != (self.blockSize + 8):
+        #    raise BlockSizeMismatch
 
     def _print(self):
 
@@ -399,6 +432,16 @@ class Transaction(Common):
     .name is a get method which converts the ._name into a more readable/useful
      format.
     """
+    def __init__(self, mmap, cursor,
+                 verb=4):
+        self.start = cursor
+        self.cursor = cursor
+        self.mmap = mmap
+        self.verb = verb
+
+        # Get transaction info
+        self.get_transaction()
+        self._print()
 
     @property
     def version(self):
@@ -410,9 +453,96 @@ class Transaction(Common):
     @property
     def nInputs(self):
         """
+        Reverse endedness, convert to hex, convert to int in base 16
+        """
+        return int(self._nInputs[::-1].encode("hex"), 16)
+
+    @property
+    def nOutputs(self):
+        """
+        Reverse endedness, convert to hex, convert to int in base 16
+        """
+        return int(self._nOutputs[::-1].encode("hex"), 16)
+
+    @property
+    def lockTime(self):
+        """
         Convert to hex
         """
-        return self._nInputs.encode("hex")
+        return self._lockTime.encode("hex")
+
+    def get_transaction(self):
+
+        # Read the version: 4 bytes
+        self._version = self.read_next(4)
+
+        # Read number of inputs: VarInt 1-9 bytes (or CVarInt?)
+        self._nInputs = self.read_var()
+
+        # Read the inputs (variable bytes)
+        inputs = []
+        for inp in range(self.nInputs):
+            txIn = TxIn(self.mmap, self.cursor)
+            inputs.append(txIn)
+        self.txIn = inputs
+
+        # Read number of outputs: VarInt 1-9 bytes (or CVarInt?)
+        self._nOutputs = self.read_var()
+
+        # Read the outputs (varible bytes)
+        outputs = []
+        for inp in range(self.nOutputs):
+            txOut = TxOut(self.mmap, self.cursor)
+            outputs.append(txOut)
+        self.txOut = outputs
+
+        # Read the locktime (4 bytes)
+        self._lockTime = self.read_next(4)
+
+        # Record the end for refernece, remove later?
+        self.end = self.cursor
+
+    def verify(self):
+        """
+        Verify transaction
+        """
+        pass
+
+    def _print(self):
+        if self.verb >= 4:
+            print "{0}{1}Read transaction{1}".format(self.verb*" "*2,
+                                                     "*"*10)
+            print "{0}Beginning at: {1}".format(self.verb*" "*2,
+                                                self.start)
+            print "{0}Ending at: {1}".format(self.verb*" "*2,
+                                             self.end)
+            print "{0}Transaction version: {1}".format(self.verb*" "*2,
+                                                       self.version)
+            print "{0}nInputs: {1}".format(self.verb*" "*2,
+                                           self.nInputs)
+            print "{0}nOutputs: {1}".format(self.verb*" "*2,
+                                            self.nOutputs)
+            print "{0}lock time: {1}".format(self.verb*" "*2,
+                                             self.lockTime)
+
+
+class TxIn(Common):
+    def __init__(self, mmap, cursor,
+                 n=None,
+                 verb=5):
+
+        # Add a reference, if provided
+        if n is not None:
+            self.n = n
+
+        self.verb = verb
+        self.mmap = mmap
+        self.cursor = cursor
+        # Read the input data
+        self.read_in()
+
+        # Print
+        self._print()
 
     @property
     def prevOutput(self):
@@ -442,12 +572,50 @@ class Transaction(Common):
         """
         return self._sequence.encode("hex")
 
-    @property
-    def nOutputs(self):
-        """
-        Convert to hex
-        """
-        return self._nOutputs.encode("hex")
+    def read_in(self):
+        # TxIn:
+        # Read the previous_output: 36 bytes
+        self._prevOutput = self.read_next(36)
+
+        # Read the script length: 1 byte
+        self._scriptLength = self.read_next(1)
+
+        # Read the script sig: Variable
+        self._scriptSig = self.read_next(self.scriptLength)
+
+        # Read sequence: 4 bytes
+        self._sequence = self.read_next(4)
+
+    def _print(self):
+        if self.verb >= 5:
+            print "{0}Prev output: {1}".format(self.verb*" "*2,
+                                               self.prevOutput)
+            print "{0}Script length: {1}".format(self.verb*" "*2,
+                                                 self.scriptLength)
+            print "{0}Script sig: {1}".format(self.verb*" "*2,
+                                              self.scriptSig)
+            print "{0}Sequence: {1}".format(self.verb*" "*2,
+                                            self.sequence)
+
+
+class TxOut(Common):
+    def __init__(self, mmap, cursor,
+                 n=None,
+                 verb=5):
+
+        # Add a reference, if provided
+        if n is not None:
+            self.n = n
+
+        self.verb = verb
+        self.mmap = mmap
+        self.cursor = cursor
+
+        # Read the output data
+        self.read_out()
+
+        # Print
+        self._print()
 
     @property
     def value(self):
@@ -471,68 +639,7 @@ class Transaction(Common):
         """
         return self._pkScript.encode("hex")
 
-    @property
-    def lockTime(self):
-        """
-        Convert to hex
-        """
-        return self._lockTime.encode("hex")
-
-    @property
-    def txIn(self):
-        """
-        WIP
-        """
-        return {'prevOut': self.prevHash,
-                'scriptLen': self.scriptLength,
-                'sigScript': self.sigScript,
-                'sequence': self.sequence}
-
-    @property
-    def txOut(self):
-        """
-        WIP
-        """
-        return {'value': self.value,
-                'pkScript': self.pkScript,
-                'pkScriptLen': self.pkScriptLen,
-                'sequence': self.sequence}
-
-    def __init__(self, mmap, cursor,
-                 verb=4):
-        self.start = cursor
-        self.cursor = cursor
-        self.mmap = mmap
-        self.verb = verb
-
-        # Get transaction info
-        self.get_transaction()
-        self._print()
-
-    def get_transaction(self):
-
-        # Read the version: 4 bytes
-        self._version = self.read_next(4)
-
-        # Read number of inputs: 1 Byte
-        self._nInputs = self.read_next(1)
-
-        # TxIn:
-        # Read the previous_output: 36 bytes
-        self._prevOutput = self.read_next(36)
-
-        # Read the script length: 1 byte
-        self._scriptLength = self.read_next(1)
-
-        # Read the script sig: Variable
-        self._scriptSig = self.read_next(self.scriptLength)
-
-        # Read sequence: 4 bytes
-        self._sequence = self.read_next(4)
-
-        # Read number of outputs: 1 byte
-        self._nOutputs = self.read_next(1)
-
+    def read_out(self):
         # TxOut:
         # Read value in Satoshis: 8 bytes
         self._value = self.read_next(8)
@@ -543,48 +650,17 @@ class Transaction(Common):
         # Read the script: Variable
         self._pkScript = self.read_next(self.pkScriptLen)
 
-        # lock time: 4 bytes
-        self._lockTime = self.read_next(4)
-
         # Record end of transaction for debugging
         self.end = self.cursor
 
     def _print(self):
-        if self.verb >= 4:
-            print "{0}{1}Read transaction{1}".format(self.verb*" "*2,
-                                                     "*"*10)
-            print "{0}Beginning at: {1}".format(self.verb*" "*2,
-                                                self.start)
-            print "{0}Ending at: {1}".format(self.verb*" "*2,
-                                             self.end)
-            print "{0}Transaction version: {1}".format(self.verb*" "*2,
-                                                       self.version)
-            print "{0}nInputs: {1}".format(self.verb*" "*2,
-                                           self.nInputs)
-            print "{0}Prev output: {1}".format(self.verb*" "*2,
-                                               self.prevOutput)
-            print "{0}Script length: {1}".format(self.verb*" "*2,
-                                                 self.scriptLength)
-            print "{0}Script sig: {1}".format(self.verb*" "*2,
-                                              self.scriptSig)
-            print "{0}Sequence: {1}".format(self.verb*" "*2,
-                                            self.sequence)
-            print "{0}nOutputs: {1}".format(self.verb*" "*2,
-                                            self.nOutputs)
+        if self.verb >= 5:
             print "{0}BTC value: {1}".format(self.verb*" "*2,
                                              self.value)
             print "{0}pk script length: {1}".format(self.verb*" "*2,
                                                     self.pkScriptLen)
             print "{0}pk script: {1}".format(self.verb*" "*2,
                                              self.pkScript)
-            print "{0}lock time: {1}".format(self.verb*" "*2,
-                                             self.lockTime)
-
-    def verify(self):
-        """
-        Verify transaction
-        """
-        pass
 
 
 if __name__ == "__main__":
@@ -592,8 +668,8 @@ if __name__ == "__main__":
 
     # %% Load .dat
 
-    f = 'Blocks/blk00001.dat'
-    dat = Dat(f, verb=4)
+    f = 'Blocks/blk00000.dat'
+    dat = Dat(f, verb=5)
 
     # %% Read next block
 
