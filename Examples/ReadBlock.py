@@ -14,7 +14,7 @@ Includes:
 
 TODO:
     - read_cvar() - need a function to handle reading  CVarInts, which are used
-    by BitcoinQT. This is just used in local storage, rather than as part of 
+    by BitcoinQT. This is just used in local storage, rather than as part of
     protocol
         - See https://en.bitcoin.it/wiki/Protocol_documentation
         - https://bitcoin.stackexchange.com/questions/51620/cvarint-serialization-format
@@ -53,7 +53,7 @@ def read_next(m, cursor,
     return out
 
 
-def read_var(m, cursor, 
+def read_var(m, cursor,
              pr=False):
     """
     Read next variable length input. These are described in specifiction:
@@ -87,7 +87,7 @@ def read_var(m, cursor,
         # Read next 8 bytes, convert as above
         out = int(read_next(m, cursor, 8, rev=True), 16)
         steps += 8
-        
+
     if pr:
         print out
 
@@ -116,7 +116,7 @@ def read_header(m, cursor,
     """
     if pr:
         print cursor
-        
+
     # Read magic number: 4 bytes
     magic = read_next(m, cursor, 4)
     cursor += 4
@@ -175,11 +175,11 @@ def read_header(m, cursor,
 
     if pr:
         print cursor
-        
+
     return cursor, nTransactions
 
 
-def read_trans(m, cursor, 
+def read_trans(m, cursor,
                pr=True):
     """
     Read transaction header (just version) and inputs and outputs.
@@ -191,15 +191,14 @@ def read_trans(m, cursor,
     tVersion = read_next(m, cursor, 4)
     if pr:
         print "  {0}-{1}: Version: {2}".format(cursor, cursor+4, tVersion)
-    
     cursor += 4
-    
+
     # Read number of inputs: varint (1-9 bytes)
     nInputs, steps = read_var(m, cursor)
     if pr:
         print "  {0}-{1}: nInputs: {2}".format(cursor, cursor+1, nInputs)
     cursor += steps
-    
+
     # Read each input
     inputs = []
     for inp in range(nInputs):
@@ -210,7 +209,7 @@ def read_trans(m, cursor,
                                                         cursor+36,
                                                         prevOutput)
         cursor += 36
-        
+
         # Read the script length: 1 byte
         scriptLength = read_next(m, cursor, 1)
         if pr:
@@ -218,7 +217,7 @@ def read_trans(m, cursor,
                                                           cursor+1,
                                                           scriptLength)
         cursor += 1
-        
+
         # Read the script sig: Variable
         scriptSig = read_next(m, cursor, int(scriptLength, 16))
         if pr:
@@ -231,8 +230,8 @@ def read_trans(m, cursor,
         # Read sequence: 4 bytes
         sequence = read_next(m, cursor, 4)
         if pr:
-            print "    {0}-{1}: sequence: {2}".format(cursor, 
-                                                      cursor+1, 
+            print "    {0}-{1}: sequence: {2}".format(cursor,
+                                                      cursor+1,
                                                       sequence)
         cursor += 4
 
@@ -250,34 +249,34 @@ def read_trans(m, cursor,
     if pr:
         print "  {0}-{1}: nOutputs: {2}".format(cursor, cursor+1, nOutputs)
     cursor += steps
-    
+
     outputs = []
     for oup in range(nOutputs):
         # Read value: 8 bytes
         value = read_next(m, cursor, 8)
         if pr:
-            print "    {0}-{1}: output value: {2}".format(cursor, 
-                                                          cursor+8, 
+            print "    {0}-{1}: output value: {2}".format(cursor,
+                                                          cursor+8,
                                                           value)
         cursor += 8
-        
+
         # pk script
         pkScriptLen = read_next(m, cursor, 1)
         if pr:
             print "    {0}-{1}: pkScriptLen: {2}".format(cursor,
                                                          cursor+1,
                                                          pkScriptLen)
-        
+
         cursor += 1
-        
+
         pkScript = read_next(m, cursor, int(pkScriptLen, 16))
         if pr:
             print "    {0}-{1}: pkScript: {2}".format(cursor,
-                                                      cursor+int(pkScriptLen, 
+                                                      cursor+int(pkScriptLen,
                                                                  16),
                                                       pkScript)
         cursor += int(pkScriptLen, 16)
-        
+
         # Compile output info
         txOut = {'n': oup,
                  'value': value,
@@ -349,13 +348,13 @@ block = 0
 totalTrans = 0
 cursor = 0
 while cursor < len(m):
-    cursor, nTransactions = read_header(m, cursor, 
+    cursor, nTransactions = read_header(m, cursor,
                                         pr=printHere)
     block += 1
     print "\nReading block {0}/?".format(block)
     for t in range(nTransactions):
         # print "  TRANSACTION {0}/{1}".format(t+1, nTransactions)
-        cursor = read_trans(m, cursor, 
+        cursor = read_trans(m, cursor,
                             pr=printHere)
         totalTrans += 1
     print "  Transactions read: {0}/{1}".format(t+1, nTransactions)
@@ -378,7 +377,7 @@ for dat in range(3):
     m = mmap.mmap(blk.fileno(), 0, access=mmap.ACCESS_READ)
 
     print "\nReading {0} {1}/3".format(f, dat)
-    
+
     block = 0
     cursor = 0
     more = True
@@ -387,11 +386,11 @@ for dat in range(3):
         cursor, nTransactions = read_header(m, cursor,
                                             pr=False)
         bRead += 1
-        
+
         for t in range(nTransactions):
             cursor = read_trans(m, cursor,
                                 pr=False)
-            
+
             tRead += 1
         print "        Transactions read: {0}/{1}".format(t+1, nTransactions)
 

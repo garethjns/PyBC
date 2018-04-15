@@ -30,7 +30,7 @@ TODO:
     - C) Multi sig transaction parsing
 """
 
-#%% Imports
+# %% Imports
 
 from Blocks import Chain
 import hashlib
