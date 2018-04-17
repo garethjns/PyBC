@@ -20,7 +20,8 @@ class BlockSizeMismatch(Exception):
         return repr(self.value)
 
 
-# %% High level classes
+# %% Common classes
+
 
 class Common():
     """
@@ -92,6 +93,65 @@ class Common():
             print int(out[::-1].encode("hex"), 16)
 
         return out
+
+    def map_next(self, length,
+                 asHex=False,
+                 rev=False,
+                 pr=False):
+
+        start = self.cursor
+        end = self.cursor + length
+        self.cursor = end
+
+        return (start, end)
+
+    def map_var(self,
+                pr=False):
+        """
+
+        """
+        # Get the next byte
+        index = (self.cursor,)
+        by = self.read_next(1)
+        o = ord(by)
+        if pr:
+            print by
+
+        if o < 253:
+            # Return as is
+            # by is already int here
+            out = index
+        elif o == 253:  # 0xfd
+            # Read next 2 bytes
+            # Reverse endedness
+            # Convert to int in base 16
+            out = self.map_next(2)
+        elif o == 254:  # 0xfe
+            # Read next 4 bytes, convert as above
+            out = self.map_next(4)
+        elif o == 255:  # 0xff
+            # Read next 8 bytes, convert as above
+            out = self.map_next(8)
+
+        if pr:
+            print out
+
+        return index, out
+
+    def read_range(self, r1,
+                   r2=None):
+        # Reopen file
+        # Don't assume already open, or keep
+        f = open(self.f, 'rb')
+        m = mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ)
+
+        if r2 is None:
+            r2 = r1+1
+
+        return m[r1:r2]
+
+
+# %% High level classes
 
 
 class Chain(Common):
@@ -205,6 +265,26 @@ class Dat(Common):
             print "\nRead {0} blocks".format(nBlock)
 
 
+class DatMap(Dat):
+    def read_next_block(self):
+        """
+        Read and return the next block
+        Track cursor position
+        """
+        b = BlockMap(self.mmap, self.cursor,
+                     verb=self.verb,
+                     f=self.f)
+        self.cursor = b.end
+
+        self.nBlock += 1
+
+        # Save block dat object - unordered at this point
+        self.blocks[self.nBlock] = b
+
+        if self.verb == 2:
+            print "{0}Read block {1}".format(self.verb*" "*2, self.nBlock)
+
+
 # %% Low level classes
 
 
@@ -220,7 +300,8 @@ class Block(Common):
     def __init__(self, mmap, cursor,
                  number=0,
                  source='',
-                 verb=4):
+                 verb=4,
+                 f=None):
 
         # Starting from the given cursor position, read block
         self.start = cursor
@@ -228,6 +309,9 @@ class Block(Common):
         self.mmap = mmap
         self.number = number
         self.verb = verb
+
+        if f is not None:
+            self.f = f
 
         # Read header
         self.read_header()
@@ -423,6 +507,135 @@ class Block(Common):
                                                   self.nTransactions)
 
 
+class BlockMap(Block):
+    """
+    Test class to map to location in .dat file, rather than holding data in
+    attributes
+    """
+    @property
+    def magic(self):
+        """
+        Convert to hex
+        """
+        by = self.read_range(r1=self._magic[0],
+                             r2=self._magic[1])
+
+        return by.encode("hex")
+
+    @property
+    def blockSize(self):
+        """
+        Reverse endedness, convert to hex, convert to int from base 16
+        """
+        by = self.read_range(r1=self._blockSize[0],
+                             r2=self._blockSize[1])
+        return int(by[::-1].encode("hex"), 16)
+
+    @property
+    def version(self):
+        """
+        Convert to hex
+        """
+        by = self.read_range(r1=self._version[0],
+                             r2=self._version[1])
+        return by.encode("hex")
+
+    @property
+    def prevHash(self):
+        """
+        Reverse, convert to hex
+        """
+        by = self.read_range(r1=self._prevHash[0],
+                             r2=self._prevHash[1])
+        return by.encode("hex")
+
+    @property
+    def merkleRootHash(self):
+        """
+        Convert to hex
+        """
+        by = self.read_range(r1=self._merkleRootHash[0],
+                             r2=self._merkleRootHash[1])
+        return by.encode("hex")
+
+    @property
+    def timestamp(self):
+        """
+        Convert to int from base 16
+        """
+        by = self.read_range(r1=self._timestamp[0],
+                             r2=self._timestamp[1])
+        return int(by[::-1].encode("hex"), 16)
+
+    @property
+    def time(self):
+        """
+        Doesn't have _time equivilent.
+        Reverse endedness, convert to hex, convert to int from base 16,
+        convert to dt
+        """
+        return dt.fromtimestamp(self.timestamp)
+
+    @property
+    def nBits(self):
+        """
+        Reverse endedness, convert to hex, convert to int from base 16
+        """
+        by = self.read_range(r1=self._nBits[0],
+                             r2=self._nBits[1])
+        return int(by[::-1].encode("hex"), 16)
+
+    @property
+    def nonce(self):
+        """
+        Reverse endedness, convert to hex, convert to int from base 16
+        """
+        by = self.read_range(r1=self._nonce[0],
+                             r2=self._nonce[1])
+        return int(by.encode("hex"), 16)
+
+    @property
+    def nTransactions(self):
+        """
+        Variable length
+        Convert to int
+        """
+        by = self.read_range(r1=self._nTransactions[0])
+
+        return ord(by)
+
+    def read_header(self):
+        """
+        Read the block header, store in ._name attributes
+        """
+        # Read magic number: 4 bytes
+        self._magic = self.map_next(4)
+
+        # Read block size: 4 bytes
+        self._blockSize = self.map_next(4)
+
+        # Read version: 4 bytes
+        self._version = self.map_next(4)
+
+        # Read the previous hash: 32 bytes
+        self._prevHash = self.map_next(32)
+
+        # Read the merkle root: 32 bytes
+        self._merkleRootHash = self.map_next(32)
+
+        # Read the time stamp: 32 bytes
+        self._timestamp = self.map_next(4)
+
+        # Read target difficulty: 4 bytes
+        self._nBits = self.map_next(4)
+
+        # Read the nonce: 4 bytes
+        self._nonce = self.map_next(4)
+
+        # Read the number of transactions: VarInt 1-9 bytes
+        self._nTransactions_loc, self._nTransactions = self.map_var()
+
+
 class Transaction(Common):
     """
     Class representing single transaction.
@@ -484,6 +697,10 @@ class Transaction(Common):
         for inp in range(self.nInputs):
             txIn = TxIn(self.mmap, self.cursor)
             inputs.append(txIn)
+
+            # Update cursor position to the end of this input
+            self.cursor = txIn.cursor
+
         self.txIn = inputs
 
         # Read number of outputs: VarInt 1-9 bytes (or CVarInt?)
@@ -494,6 +711,10 @@ class Transaction(Common):
         for inp in range(self.nOutputs):
             txOut = TxOut(self.mmap, self.cursor)
             outputs.append(txOut)
+
+            # Update cursor position to the end of this output
+            self.cursor = txIn.cursor
+
         self.txOut = outputs
 
         # Read the locktime (4 bytes)
@@ -669,7 +890,8 @@ if __name__ == "__main__":
     # %% Load .dat
 
     f = 'Blocks/blk00000.dat'
-    dat = Dat(f, verb=5)
+    dat = Dat(f,
+              verb=5)
 
     # %% Read next block
 
@@ -690,3 +912,13 @@ if __name__ == "__main__":
     # %% Print example transaction
 
     c.dats[1].blocks[2].trans[0]._print()
+
+    # %% Create a map object
+
+    f = 'Blocks/blk00000.dat'
+    datm = DatMap(f,
+                  verb=4)
+
+    # %% Read next block
+
+    datm.read_next_block()
