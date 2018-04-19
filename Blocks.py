@@ -324,6 +324,8 @@ class Block(Common):
         if self.verb >= 3:
             print "{0}Block ends at: {1}".format(self.verb*" "*2,
                                                  self.end)
+            print "{0}{1}".format(3*" "*2,
+                                  "********************")
 
         # Check size as expected
         self.verify()
@@ -751,6 +753,9 @@ class Transaction(Common):
                 oup._print()
             print "{0}lock time: {1}".format(4*" "*2,
                                              self.lockTime)
+
+            print "{0}{1}Transaction ends{1}".format(4*" "*2,
+                                                     "*"*10)
 
 
 class TxIn(Common):
