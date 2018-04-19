@@ -710,12 +710,12 @@ class Transaction(Common):
 
         # Read the outputs (varible bytes)
         outputs = []
-        for inp in range(self.nOutputs):
+        for oup in range(self.nOutputs):
             txOut = TxOut(self.mmap, self.cursor)
             outputs.append(txOut)
 
             # Update cursor position to the end of this output
-            self.cursor = txIn.cursor
+            self.cursor = txOut.cursor
 
         self.txOut = outputs
 
