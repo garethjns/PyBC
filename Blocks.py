@@ -6,7 +6,7 @@
 # %% Imports
 
 from datetime import datetime as dt
-# from utils import rev_hex
+from utils import hash_SHA256_twice
 import mmap
 
 
@@ -363,7 +363,7 @@ class Block(Common):
         """
         Convert to hex
         """
-        return self._merkleRootHash.encode("hex")
+        return self._merkleRootHash[::-1].encode("hex")
 
     @property
     def timestamp(self):
@@ -403,6 +403,10 @@ class Block(Common):
         """
         return ord(self._nTransactions)
 
+    @property
+    def hash(self):
+        return hash_SHA256_twice(self.prep_header())[::-1].encode("hex")
+
     def prep_header(self):
         """
         Prep the block header for hashing as stored in the Block class where
@@ -419,7 +423,7 @@ class Block(Common):
             + self._nBits \
             + self._nonce
 
-        return header.decode("hex")
+        return header
 
     def read_header(self):
         """

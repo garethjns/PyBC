@@ -5,29 +5,29 @@ Created on Fri Apr 06 16:24:39 2018
 @author: Gareth
 """
 
-#%% Imports
+# %% Imports
 
 from Blocks import Dat
 
 import hashlib
-import mmap 
+import mmap
 
 
-#%% Hash genesis block
+# %% Hash genesis block
 # Import genesis block from first .dat
-# Should hash to 
+# Should hash to
 # 000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f
 
 f = 'Blocks/blk00000.dat'
 f = open(f, 'rb')
-blk = mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ) 
+blk = mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ)
 
 # Genesis block is first 293 bytes
 gb = blk[0:293]
 
 # Get info to hash from header
-hStart = 4+4 # Exclude magic + block size
-hEnd = 4+32+32+4+4+4 # Version, prevHash, MRHash, time, bits, nonce
+hStart = 4+4  # Exclude magic + block size
+hEnd = 4+32+32+4+4+4  # Version, prevHash, MRHash, time, bits, nonce
 gbHeader = gb[hStart:hStart+hEnd]
 
 # Hash using sha256
@@ -37,9 +37,9 @@ bh = hashlib.sha256(hashlib.sha256(gbHeader).digest()).digest()
 hh = bh[::-1].encode("hex")
 
 
-#%% Hash function
+# %% Hash function
 
-def hash256(s):
+def hash256_twice(s):
     """
     Hash input with sha256 twice, reverse, encode to hex.
     """
@@ -48,48 +48,48 @@ def hash256(s):
 
     return hh
 
-hash256(gbHeader)
+hash256_twice(gbHeader)
 
 
-#%% Run hash on header in Block object
+# %% Run hash on header in Block object
 # Some fields has been reversed on import
 
 def rev_hex(h):
     """
-    Reverse endedness of hex data by decoding to binary, reversing, 
+    Reverse endedness of hex data by decoding to binary, reversing,
     and reencoding
     """
     return h.decode("hex")[::-1].encode("hex")
-    
+
 
 def prep_header(block):
     """
     Prep the block header for hashing as stored in the Block class where
     timestamp is already reversed (may change in future)
-    
+
     This data is already converted to hex so decode back to binary
     """
 
     # Collect header hex
-    header = block.version \
-             + block.prevHash \
-             + block.merkleRootHash \
-             + block.timestamp \
-             + block.nBits \
-             + block.nonce
-    
-    return header.decode("hex") 
+    header = block._version \
+           + block._prevHash \
+           + block._merkleRootHash \
+           + block._timestamp \
+           + block._nBits \
+           + block._nonce
+
+    return header
 
 # Import first block
 f = 'Blocks/blk00000.dat'
-blk = BLK(f)
-blk.read_next_block()
+dat = Dat(f)
+dat.read_next_block()
 
 # Prep the header
-prepped_header = prep_header(blk.blocks[0])
+prepped_header = prep_header(dat.blocks[0])
 
 # This should now match the header as loaded in the example above:
 assert prepped_header == gbHeader
 
 # Hash
-hash256(prepped_header)
+hash256_twice(prepped_header)
