@@ -6,10 +6,17 @@
 # %% Imports
 
 from datetime import datetime as dt
-from utils import hash_SHA256_twice
+from utils import hash_SHA256_twice, tqdm_off
 import mmap
 import time
 import requests
+
+# Optional import for pretty waitbars
+try:
+    from tqdm import tqdm
+    print "Imported tqdm"
+except ImportError:
+    tqdm = tqdm_off
 
 
 # %% Error classes
@@ -23,7 +30,6 @@ class BlockSizeMismatch(Exception):
 
 
 # %% Common classes
-
 
 class Common():
     """
@@ -100,7 +106,9 @@ class Common():
                  asHex=False,
                  rev=False,
                  pr=False):
-
+        """
+        Get indexes of next data locations, rather than reading
+        """
         start = self.cursor
         print length
         end = self.cursor + length
@@ -111,7 +119,7 @@ class Common():
     def map_var(self,
                 pr=False):
         """
-
+        Find the indexes of the next (variable) data locations
         """
         # Get the next byte
         index = (self.cursor,)
@@ -200,7 +208,16 @@ class Chain(Common):
         """
         Read all blocks in .dat
         """
-        for fi in range(self.datStart, self.datStart+self.datn):
+        # If verb is low, use tqdm
+        if self.verb <= 1:
+            # Note if tqdm isn't available, it'll use the placeholder
+            # function which does nothing
+            tqdm_runner = tqdm
+        else:
+            tqdm_runner = tqdm_off
+        
+        for fi in tqdm_runner(range(self.datStart,
+                                    self.datStart+self.datn)):
             d = self.readDat(datn=fi)
             d.read_all()
 
@@ -853,7 +870,7 @@ if __name__ == "__main__":
 
     # %% Read chain - 1 step
 
-    c = Chain(verb=4)
+    c = Chain(verb=2)
     c.read_next_Dat()
 
     # %% Read chain - all (in range)

@@ -9,8 +9,12 @@ Created on Fri Apr 06 17:42:17 2018
 
 import hashlib
 
+# %% General functions
 
-# %% Functions
+def tqdm_off(x):
+    return x
+
+# %% Block functions
 
 def rev_hex(h):
     """
