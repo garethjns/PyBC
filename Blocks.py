@@ -102,6 +102,7 @@ class Common():
                  pr=False):
 
         start = self.cursor
+        print length
         end = self.cursor + length
         self.cursor = end
 
@@ -267,26 +268,6 @@ class Dat(Common):
             print "\nRead {0} blocks".format(nBlock)
 
 
-class DatMap(Dat):
-    def read_next_block(self):
-        """
-        Read and return the next block
-        Track cursor position
-        """
-        b = BlockMap(self.mmap, self.cursor,
-                     verb=self.verb,
-                     f=self.f)
-        self.cursor = b.end
-
-        self.nBlock += 1
-
-        # Save block dat object - unordered at this point
-        self.blocks[self.nBlock] = b
-
-        if self.verb == 2:
-            print "{0}Read block {1}".format(self.verb*" "*2, self.nBlock)
-
-
 # %% Low level classes
 
 
@@ -312,9 +293,7 @@ class Block(Common):
         self.number = number
         self.verb = verb
         self.lastQueryTime = 0
-
-        if f is not None:
-            self.f = f
+        self.f = f
 
         # Read header
         self.read_header()
@@ -468,7 +447,7 @@ class Block(Common):
         for t in range(self.nTransactions):
 
             # Make transaction objects and table
-            trans = Transaction(self.mmap, fr,
+            trans = Trans(self.mmap, fr,
                                 verb=self.verb)
             fr = trans.cursor
             self.trans[t] = trans
@@ -572,136 +551,7 @@ class Block(Common):
                                                   self.nTransactions)
 
 
-class BlockMap(Block):
-    """
-    Test class to map to location in .dat file, rather than holding data in
-    attributes
-    """
-    @property
-    def magic(self):
-        """
-        Convert to hex
-        """
-        by = self.read_range(r1=self._magic[0],
-                             r2=self._magic[1])
-
-        return by.encode("hex")
-
-    @property
-    def blockSize(self):
-        """
-        Reverse endedness, convert to hex, convert to int from base 16
-        """
-        by = self.read_range(r1=self._blockSize[0],
-                             r2=self._blockSize[1])
-        return int(by[::-1].encode("hex"), 16)
-
-    @property
-    def version(self):
-        """
-        Convert to hex
-        """
-        by = self.read_range(r1=self._version[0],
-                             r2=self._version[1])
-        return by.encode("hex")
-
-    @property
-    def prevHash(self):
-        """
-        Reverse, convert to hex
-        """
-        by = self.read_range(r1=self._prevHash[0],
-                             r2=self._prevHash[1])
-        return by.encode("hex")
-
-    @property
-    def merkleRootHash(self):
-        """
-        Convert to hex
-        """
-        by = self.read_range(r1=self._merkleRootHash[0],
-                             r2=self._merkleRootHash[1])
-        return by.encode("hex")
-
-    @property
-    def timestamp(self):
-        """
-        Convert to int from base 16
-        """
-        by = self.read_range(r1=self._timestamp[0],
-                             r2=self._timestamp[1])
-        return int(by[::-1].encode("hex"), 16)
-
-    @property
-    def time(self):
-        """
-        Doesn't have _time equivilent.
-        Reverse endedness, convert to hex, convert to int from base 16,
-        convert to dt
-        """
-        return dt.fromtimestamp(self.timestamp)
-
-    @property
-    def nBits(self):
-        """
-        Reverse endedness, convert to hex, convert to int from base 16
-        """
-        by = self.read_range(r1=self._nBits[0],
-                             r2=self._nBits[1])
-        return int(by[::-1].encode("hex"), 16)
-
-    @property
-    def nonce(self):
-        """
-        Reverse endedness, convert to hex, convert to int from base 16
-        """
-        by = self.read_range(r1=self._nonce[0],
-                             r2=self._nonce[1])
-        return int(by.encode("hex"), 16)
-
-    @property
-    def nTransactions(self):
-        """
-        Variable length
-        Convert to int
-        """
-        by = self.read_range(r1=self._nTransactions[0])
-
-        return ord(by)
-
-    def read_header(self):
-        """
-        Read the block header, store in ._name attributes
-        """
-        # Read magic number: 4 bytes
-        self._magic = self.map_next(4)
-
-        # Read block size: 4 bytes
-        self._blockSize = self.map_next(4)
-
-        # Read version: 4 bytes
-        self._version = self.map_next(4)
-
-        # Read the previous hash: 32 bytes
-        self._prevHash = self.map_next(32)
-
-        # Read the merkle root: 32 bytes
-        self._merkleRootHash = self.map_next(32)
-
-        # Read the time stamp: 32 bytes
-        self._timestamp = self.map_next(4)
-
-        # Read target difficulty: 4 bytes
-        self._nBits = self.map_next(4)
-
-        # Read the nonce: 4 bytes
-        self._nonce = self.map_next(4)
-
-        # Read the number of transactions: VarInt 1-9 bytes
-        self._nTransactions_loc, self._nTransactions = self.map_var()
-
-
-class Transaction(Common):
+class Trans(Common):
     """
     Class representing single transaction.
 
@@ -711,12 +561,14 @@ class Transaction(Common):
      format.
     """
     def __init__(self, mmap, cursor,
-                 verb=4):
+                 verb=4,
+                 f=None):
         self.start = cursor
         self.cursor = cursor
         self.mmap = mmap
         self.verb = verb
-
+        self.f = f
+        
         # Get transaction info
         self.get_transaction()
         self._print()
@@ -824,12 +676,14 @@ class Transaction(Common):
 class TxIn(Common):
     def __init__(self, mmap, cursor,
                  n=None,
-                 verb=5):
+                 verb=5,
+                 f=None):
 
         # Add a reference, if provided
         if n is not None:
             self.n = n
 
+        self.f = f
         self.verb = verb
         self.mmap = mmap
         self.cursor = cursor
@@ -893,12 +747,14 @@ class TxIn(Common):
 class TxOut(Common):
     def __init__(self, mmap, cursor,
                  n=None,
-                 verb=5):
+                 verb=5,
+                 f=None):
 
         # Add a reference, if provided
         if n is not None:
             self.n = n
 
+        self.f = f
         self.verb = verb
         self.mmap = mmap
         self.cursor = cursor
@@ -984,13 +840,3 @@ if __name__ == "__main__":
     # %% Print example transaction
 
     c.dats[1].blocks[2].trans[0]._print()
-
-    # %% Create a map object
-
-    f = 'Blocks/blk00000.dat'
-    datm = DatMap(f,
-                  verb=4)
-
-    # %% Read next block
-
-    datm.read_next_block()
