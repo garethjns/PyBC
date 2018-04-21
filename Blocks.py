@@ -219,13 +219,16 @@ class Dat(Common):
     Opens and maps .dat ready for reading
     """
     def __init__(self, f,
-                 verb=4):
+                 verb=4,
+                 validateBlocks=True):
         self.f = f
         self.reset()
         self.cursor = 0
         self.blocks = {}
         self.nBlock = -1
         self.verb = verb
+        self.validateBlocks = validateBlocks
+        self.lastQueryTime = 0
 
     def reset(self):
         """
@@ -245,6 +248,13 @@ class Dat(Common):
         """
         b = Block(self.mmap, self.cursor,
                   verb=self.verb)
+
+        # Validate, if on
+        if self.validateBlocks:
+            b.lastQueryTime = self.lastQueryTime
+            b.api_verify()
+            self.lastQueryTime = b.lastQueryTime
+
         self.cursor = b.end
 
         self.nBlock += 1
@@ -448,7 +458,7 @@ class Block(Common):
 
             # Make transaction objects and table
             trans = Trans(self.mmap, fr,
-                                verb=self.verb)
+                          verb=self.verb)
             fr = trans.cursor
             self.trans[t] = trans
 
@@ -480,6 +490,10 @@ class Block(Common):
         TODO:
             - Tidy printing
         """
+        if self.verb > 3:
+            print "{0}{1}Validating{1}".format(" "*3,
+                                               "_"*10)
+
         # Wait if last query was less than 10s ago
         dTime = (time.time() - self.lastQueryTime)
         if dTime < 11:
@@ -493,7 +507,8 @@ class Block(Common):
                 # Skip
                 self.api_validated = 'Skipped'
                 if self.verb > 3:
-                    print "Validation passed: {0}".format(self.api_validated)
+                    print "{0}Validation skipped \n{0}{1}".format(" "*3,
+                                                               "_"*30)
                 return
 
         # Query
@@ -505,23 +520,34 @@ class Block(Common):
         jr = resp.json()
 
         # Use these fields for validation
-        validationFields = {self.blockSize: 'size',
+        validationFields = {self.hash: 'hash',
+                            self.blockSize: 'size',
                             self.merkleRootHash: 'mrkl_root',
                             self.nTransactions: 'n_tx',
-                            self.prevHash: 'prev_block'}
+                            self.prevHash: 'prev_block',
+                            self.nonce: 'nonce',
+                            self.timestamp: 'time'}
 
         # Iterate over and compare fields
         result = True
         for k, v in validationFields.iteritems():
             test = k == jr[v]
-            print "{0} | {1}: {2}".format(k, jr[v], test)
+            if self.verb > 3:
+                print "{0}{1}:\n{0}{2} | {3}: {4}".format(" "*3,
+                                                          v,
+                                                          k,
+                                                          jr[v],
+                                                          test)
+            # Keep track of overall result
             result &= test
 
         self.api_validated = result
 
         # Report
         if self.verb > 3:
-            print "Validation passed: {0}".format(self.api_validated)
+            print "{0}Validation passed: {1}\n{0}{2}".format(" "*3,
+                                                             self.api_validated,
+                                                             "_"*30)
 
     def _print(self):
 
@@ -568,7 +594,7 @@ class Trans(Common):
         self.mmap = mmap
         self.verb = verb
         self.f = f
-        
+
         # Get transaction info
         self.get_transaction()
         self._print()
@@ -822,7 +848,7 @@ if __name__ == "__main__":
     # Read the block
     dat.read_next_block()
 
-    # Verify it's correct
+    # Verify it's correct (this may already have been done on import)
     dat.blocks[0].api_verify()
 
     # %% Read chain - 1 step
