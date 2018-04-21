@@ -8,6 +8,8 @@
 from datetime import datetime as dt
 from utils import hash_SHA256_twice
 import mmap
+import time
+import requests
 
 
 # %% Error classes
@@ -309,6 +311,7 @@ class Block(Common):
         self.mmap = mmap
         self.number = number
         self.verb = verb
+        self.lastQueryTime = 0
 
         if f is not None:
             self.f = f
@@ -484,6 +487,62 @@ class Block(Common):
         # Block size check
         # if (self.end - self.start) != (self.blockSize + 8):
         #    raise BlockSizeMismatch
+
+    def api_verify(self,
+                   url="https://blockchain.info/rawblock/",
+                   wait=False):
+        """
+        Query a block hash from Blockchain.info's api. Check it matches the
+        blockon size, merkle root, number of transactions, previous block hash
+
+        Respects apis request limting queries to 1 every 10s. If wait is True,
+        waits to query. If false, skips.
+
+        TODO:
+            - Tidy printing
+        """
+        # Wait if last query was less than 10s ago
+        dTime = (time.time() - self.lastQueryTime)
+        if dTime < 11:
+            if wait:
+                sleep_time = 11 - dTime
+                if self.verb > 3:
+                    print "Sleeping for {0}".format(sleep_time)
+                time.sleep(sleep_time)
+
+            else:
+                # Skip
+                self.api_validated = 'Skipped'
+                if self.verb > 3:
+                    print "Validation passed: {0}".format(self.api_validated)
+                return
+
+        # Query
+        resp = requests.get(url + self.hash)
+        # Record the last time
+        self.lastQueryTime = time.time()
+
+        # Get the json
+        jr = resp.json()
+
+        # Use these fields for validation
+        validationFields = {self.blockSize: 'size',
+                            self.merkleRootHash: 'mrkl_root',
+                            self.nTransactions: 'n_tx',
+                            self.prevHash: 'prev_block'}
+
+        # Iterate over and compare fields
+        result = True
+        for k, v in validationFields.iteritems():
+            test = k == jr[v]
+            print "{0} | {1}: {2}".format(k, jr[v], test)
+            result &= test
+
+        self.api_validated = result
+
+        # Report
+        if self.verb > 3:
+            print "Validation passed: {0}".format(self.api_validated)
 
     def _print(self):
 
@@ -904,7 +963,11 @@ if __name__ == "__main__":
 
     # %% Read next block
 
+    # Read the block
     dat.read_next_block()
+
+    # Verify it's correct
+    dat.blocks[0].api_verify()
 
     # %% Read chain - 1 step
 
