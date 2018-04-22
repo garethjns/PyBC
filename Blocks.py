@@ -548,7 +548,8 @@ class Block(Common):
 
             # Make transaction objects and table
             trans = Trans(self.mmap, fr,
-                          verb=self.verb)
+                          verb=self.verb,
+                          lastQueryTime=self.lastQueryTime)
             fr = trans.cursor
             self.trans[t] = trans
 
@@ -603,7 +604,7 @@ class Block(Common):
             self.api_validated = self.api_check(jr, validationFields)
         else:
             self.api_validated = 'Skipped'
-    
+
         # Report
         if self.verb > 3:
             print "{0}Validation passed: {1}\n{0}{2}".format(
@@ -650,12 +651,15 @@ class Trans(Common):
     """
     def __init__(self, mmap, cursor,
                  verb=4,
-                 f=None):
+                 f=None,
+                 lastQueryTime=0):
+
         self.start = cursor
         self.cursor = cursor
         self.mmap = mmap
         self.verb = verb
         self.f = f
+        self.lastQueryTime = lastQueryTime
 
         # Get transaction info
         self.get_transaction()
@@ -763,8 +767,8 @@ class Trans(Common):
             # Use these fields for validation
             validationFields = {
                     self.txIn[0].scriptSig: jr['inputs'][0]['script'],
-                    self.trans.txOut[0].pkScript: jr['out'][0]['script'],
-                    self.trans.txOut[0].outputAdd: jr['out'][0]['addr']
+                    self.txOut[0].pkScript: jr['out'][0]['script'],
+                    self.txOut[0].outputAddr: jr['out'][0]['addr']
                                 }
             self.api_validated = self.api_check(jr, validationFields)
         else:
@@ -1105,15 +1109,23 @@ if __name__ == "__main__":
     # Verify it's correct (this may already have been done on import)
     dat.blocks[0].api_verify()
 
+    # %% Print example transaction
+
+    dat.blocks[0].trans[0]._print()
+
+    # %% Verify it's correct
+
+    dat.blocks[0].trans[0].api_verify()
+
     # %% Read chain - 1 step
 
-    c = Chain(verb=3)
+    c = Chain(verb=2)
     c.read_next_Dat()
 
     # %% Read chain - all (in range)
 
     c = Chain(verb=1,
-              datStart=0,
+              datStart=2,
               datn=3)
     c.read_all()
 
