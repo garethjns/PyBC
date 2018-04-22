@@ -6,7 +6,8 @@
 # %% Imports
 
 from datetime import datetime as dt
-from utils import hash_SHA256_twice, hash_SHA256_ripemd160, tqdm_off, OP_CODES
+from utils import hash_SHA256_twice, hash_SHA256_ripemd160, tqdm_off, \
+    OP_CODES
 import mmap
 import time
 import requests
@@ -161,6 +162,77 @@ class Common():
             r2 = r1+1
 
         return m[r1:r2]
+
+    def api_wait(self,
+                 wait=False,
+                 ttw=11):
+
+        # Wait if last query was less than 10s ago
+        dTime = (time.time() - self.lastQueryTime)
+        if dTime <= ttw:
+            if wait:
+                sleep_time = ttw - dTime
+                if self.verb > 3:
+                    print "Sleeping for {0}".format(sleep_time)
+                time.sleep(sleep_time)
+                return True
+
+            else:
+                # Skip
+                self.api_validated = 'Skipped'
+                if self.verb > 3:
+                    print "{0}Validation skipped \n{0}{1}".format(" "*3,
+                                                                  "_"*30)
+                return False
+        else:
+            # No need to wait
+            return True
+
+    def api_get(self,
+                url="https://blockchain.info/rawblock/",
+                wait=False):
+
+        # Check last query time and either continue, wait and continue,
+        # or don't wait (False returned)
+        if not self.api_wait(wait=wait):
+            return None
+
+        # Query
+        resp = requests.get(url + self.hash)
+        # Record the last time
+        self.lastQueryTime = time.time()
+
+        # Get the json
+        jr = resp.json()
+
+        if resp.status_code == 200:
+            # Get the json
+            jr = resp.json()
+        else:
+            # Or return the response code on error
+            jr = None
+
+        return jr
+
+    def api_check(self, jr, validationFields):
+
+        # If reponse wasn't valid, don't run checks
+        if jr is None:
+            return None
+
+        # Iterate over and compare fields
+        result = True
+        for k, v in validationFields.iteritems():
+            test = k == v
+            if self.verb > 3:
+                print "{0}{1} | {2}: {3}".format(" "*3,
+                                                 v,
+                                                 k,
+                                                 test)
+            # Keep track of overall result
+            result &= test
+
+        return result
 
 
 # %% High level classes
@@ -508,59 +580,30 @@ class Block(Common):
         TODO:
             - Tidy printing
         """
+
         if self.verb > 3:
             print "{0}{1}Validating{1}".format(" "*3,
                                                "_"*10)
 
-        # Wait if last query was less than 10s ago
-        dTime = (time.time() - self.lastQueryTime)
-        if dTime < 11:
-            if wait:
-                sleep_time = 11 - dTime
-                if self.verb > 3:
-                    print "Sleeping for {0}".format(sleep_time)
-                time.sleep(sleep_time)
+        jr = self.api_get(url=url,
+                          wait=False)
 
-            else:
-                # Skip
-                self.api_validated = 'Skipped'
-                if self.verb > 3:
-                    print "{0}Validation skipped \n{0}{1}".format(" "*3,
-                                                                  "_"*30)
-                return
+        if jr is not None:
+            # Use these fields for validation
+            validationFields = {
+                    self.hash: jr['hash'],
+                    self.blockSize: jr['size'],
+                    self.merkleRootHash: jr['mrkl_root'],
+                    self.nTransactions: jr['n_tx'],
+                    self.prevHash: jr['prev_block'],
+                    self.nonce: jr['nonce'],
+                    self.timestamp: jr['time']
+                                }
 
-        # Query
-        resp = requests.get(url + self.hash)
-        # Record the last time
-        self.lastQueryTime = time.time()
-
-        # Get the json
-        jr = resp.json()
-
-        # Use these fields for validation
-        validationFields = {self.hash: 'hash',
-                            self.blockSize: 'size',
-                            self.merkleRootHash: 'mrkl_root',
-                            self.nTransactions: 'n_tx',
-                            self.prevHash: 'prev_block',
-                            self.nonce: 'nonce',
-                            self.timestamp: 'time'}
-
-        # Iterate over and compare fields
-        result = True
-        for k, v in validationFields.iteritems():
-            test = k == jr[v]
-            if self.verb > 3:
-                print "{0}{1}:\n{0}{2} | {3}: {4}".format(" "*3,
-                                                          v,
-                                                          k,
-                                                          jr[v],
-                                                          test)
-            # Keep track of overall result
-            result &= test
-
-        self.api_validated = result
-
+            self.api_validated = self.api_check(jr, validationFields)
+        else:
+            self.api_validated = 'Skipped'
+    
         # Report
         if self.verb > 3:
             print "{0}Validation passed: {1}\n{0}{2}".format(
@@ -695,11 +738,44 @@ class Trans(Common):
         # Record the end for refernece, remove later?
         self.end = self.cursor
 
-    def verify(self):
+    def api_verify(self,
+                   url="https://blockchain.info/rawtx/",
+                   wait=False):
         """
-        Verify transaction
+        Query a block hash from Blockchain.info's api. Check it matches the
+        blockon size, merkle root, number of transactions, previous block hash
+
+        Respects apis request limting queries to 1 every 10s. If wait is True,
+        waits to query. If false, skips.
+
+        TODO:
+            - Tidy printing
         """
-        pass
+
+        if self.verb > 3:
+            print "{0}{1}Validating{1}".format(" "*3,
+                                               "_"*10)
+
+        jr = self.api_get(url=url,
+                          wait=False)
+
+        if jr is not None:
+            # Use these fields for validation
+            validationFields = {
+                    self.txIn[0].scriptSig: jr['inputs'][0]['script'],
+                    self.trans.txOut[0].pkScript: jr['out'][0]['script'],
+                    self.trans.txOut[0].outputAdd: jr['out'][0]['addr']
+                                }
+            self.api_validated = self.api_check(jr, validationFields)
+        else:
+            self.api_validated = 'Skipped'
+
+        # Report
+        if self.verb > 3:
+            print "{0}Validation passed: {1}\n{0}{2}".format(
+                                            " "*3,
+                                            self.api_validated,
+                                            "_"*30)
 
     def prep_header(self):
         header = self._version \
