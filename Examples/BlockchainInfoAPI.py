@@ -168,4 +168,5 @@ def trans_validate(block,
     return lastTime, result
 
 # TODO:
-#    - Add transaction hash
+#    - Add transaction hash (see Examples/hashTransaction)
+
