@@ -665,7 +665,8 @@ class Trans(Common):
         # Read the inputs (variable bytes)
         inputs = []
         for inp in range(self.nInputs):
-            txIn = TxIn(self.mmap, self.cursor)
+            txIn = TxIn(self.mmap, self.cursor,
+                        verb=self.verb)
             inputs.append(txIn)
 
             # Update cursor position to the end of this input
@@ -679,7 +680,8 @@ class Trans(Common):
         # Read the outputs (varible bytes)
         outputs = []
         for oup in range(self.nOutputs):
-            txOut = TxOut(self.mmap, self.cursor)
+            txOut = TxOut(self.mmap, self.cursor,
+                          verb=self.verb)
             outputs.append(txOut)
 
             # Update cursor position to the end of this output
@@ -712,7 +714,7 @@ class Trans(Common):
                 + self.txOut[0]._pkScriptLen \
                 + self.txOut[0]._pkScript \
                 + self._lockTime
-    
+
         return header
 
     def _print(self):
@@ -964,14 +966,14 @@ class TxOut(Common):
             print "{0}SHA256: h1: {1}".format(" "*6, h.encode("hex"))
 
         # Add version
-        addr = b"\00" + h
+        h = b"\00" + h
         if self.verb >= 6:
-            print "{0}version + addr: {1}".format(" "*6, addr.encode("hex"))
+            print "{0}version + h1: {1}".format(" "*6, h.encode("hex"))
 
         # Hash SHA256
         h2 = hash_SHA256_twice(h)
         if self.verb >= 6:
-            print "{0}h3: {1}".format(" "*6, h2.encode("hex"))
+            print "{0}h2: {1}".format(" "*6, h2.encode("hex"))
 
         # Get checksum
         cs = h2[0:4]
@@ -980,7 +982,7 @@ class TxOut(Common):
             print "{0}h2 + cs: {1}".format(" "*5, (h2 + cs).encode("hex"))
 
         # Add checksum and convert to base58
-        b58 = base58.b58encode(addr + cs)
+        b58 = base58.b58encode(h + cs)
         if self.verb >= 6:
             print "{0}b58: {1}".format(" "*6, b58)
 

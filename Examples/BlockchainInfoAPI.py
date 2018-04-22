@@ -62,7 +62,7 @@ def get_resp(h,
         time.sleep(sleep_time)
 
     # Query
-    resp = requests.get(url + block.hash)
+    resp = requests.get(url + h)
     # Record the last time
     lastTime = time.time()
 
@@ -197,17 +197,17 @@ def trans_validate(trans,
                   pr=True)
 
     # Input 0 script
-    t1 = resp.json()['inputs'][0]['script'] == trans.txIn[0].scriptSig
+    t1 = jr['inputs'][0]['script'] == trans.txIn[0].scriptSig
     if pr:
         print t1
 
     # Output 0 script
-    t2 = resp.json()['out'][0]['script'] == trans.txOut[0].pkScript
+    t2 = jr['out'][0]['script'] == trans.txOut[0].pkScript
     if pr:
         print t2
 
     # Decoded output address
-    t3 = resp.json()['out'][0]['addr'] == trans.txOut[0].outputAddr
+    t3 = jr['out'][0]['addr'] == trans.txOut[0].outputAddr
     if pr:
         print t3
 
