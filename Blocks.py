@@ -6,7 +6,11 @@
 # %% Imports
 
 from datetime import datetime as dt
+<<<<<<< HEAD
 from utils import hash_SHA256_twice, hash_SHA256_ripemd160, tqdm_off, OP_CODES
+=======
+from utils import hash_SHA256_twice, tqdm_off, OP_CODES
+>>>>>>> b4660543d3313557641f4de7b75adad76771f917
 import mmap
 import time
 import requests
@@ -835,7 +839,6 @@ class TxOut(Common):
 
     @property
     def outputAddr(self):
-
         # Get the encoded address from the output script
         script = self.split_script()
         pk = script[script.index("PUSH_BYTES")+2]
