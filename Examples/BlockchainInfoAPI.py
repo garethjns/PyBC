@@ -143,7 +143,43 @@ lastTime, result = block_validate(block, lastTime)
 
 # %% Transaction validation
 
-def trans_validate(block,
+# Get a transaction hash
+transHash = dat.blocks[0].trans[0].hash
+
+print transHash
+
+# api url
+url = "https://blockchain.info/rawtx/"
+# Query
+resp = requests.get(url + transHash)
+
+# Check reponse 200
+if resp.status_code == 200:
+    print "Good response"
+else:
+    print "Bad response code {}".format(resp.status_code)
+
+
+# %% Look at response
+
+# Print block info
+print resp.json()
+
+# Print individual fields, eg
+print "\n"
+# Script from input 0
+print resp.json()['inputs'][0]['script']
+# Transaction hash
+print resp.json()['hash']
+# Some meta info for output 0 (not in block)
+print resp.json()['out'][0]['addr_tag']
+# Decoded output address
+print resp.json()['out'][0]['addr']
+
+
+# %% Function version
+
+def trans_validate(trans,
                    pr=True):
     """
     Query a transaction hash from Blockchain.info's api.
@@ -151,12 +187,32 @@ def trans_validate(block,
         - Stuff
 
     Respects apis request limting queries to 1 every 10s.
+
+    Handles single input
     """
 
-    jr = get_resp(block.hash,
+    jr = get_resp(trans.hash,
                   lastTime=0,
-                  url="https://blockchain.info/rawblock/",
+                  url="https://blockchain.info/rawtx/",
                   pr=True)
+
+    # Input 0 script
+    t1 = resp.json()['inputs'][0]['script'] == trans.txIn[0].scriptSig
+    if pr:
+        print t1
+
+    # Output 0 script
+    t2 = resp.json()['out'][0]['script'] == trans.txOut[0].pkScript
+    if pr:
+        print t2
+
+    # Decoded output address
+    t3 = resp.json()['out'][0]['addr'] == trans.txOut[0].outputAddr
+    if pr:
+        print t3
+
+    # The the overall result
+    result = t1 & t2 & t3
 
     # Report
     if pr:
@@ -167,6 +223,6 @@ def trans_validate(block,
 
     return lastTime, result
 
-# TODO:
-#    - Add transaction hash (see Examples/hashTransaction)
 
+trans = dat.blocks[0].trans[0]
+trans_validate(trans)

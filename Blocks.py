@@ -646,6 +646,14 @@ class Trans(Common):
         """
         return self._lockTime.encode("hex")
 
+    @property
+    def hash(self):
+        """
+        Get prepared header, hash twice with SHA256, reverse, convert to hex
+        """
+        header = self.prep_header()
+        return hash_SHA256_twice(header)[::-1].encode("hex")
+
     def get_transaction(self):
 
         # Read the version: 4 bytes
@@ -690,6 +698,22 @@ class Trans(Common):
         Verify transaction
         """
         pass
+
+    def prep_header(self):
+        header = self._version \
+                + self._nInputs \
+                + self.txIn[0]._prevOutput \
+                + self.txIn[0]._prevIndex \
+                + self.txIn[0]._scriptLength \
+                + self.txIn[0]._scriptSig \
+                + self.txIn[0]._sequence \
+                + self._nOutputs \
+                + self.txOut[0]._value \
+                + self.txOut[0]._pkScriptLen \
+                + self.txOut[0]._pkScript \
+                + self._lockTime
+    
+        return header
 
     def _print(self):
         if self.verb >= 4:
@@ -743,6 +767,13 @@ class TxIn(Common):
         return self._prevOutput.encode("hex")
 
     @property
+    def prevIndex(self):
+        """
+        Convert to hex
+        """
+        return self._prevIndex.encode("hex")
+
+    @property
     def scriptLength(self):
         """
         Convert to hex, convert to int from base 16
@@ -765,8 +796,11 @@ class TxIn(Common):
 
     def read_in(self):
         # TxIn:
-        # Read the previous_output: 36 bytes
-        self._prevOutput = self.read_next(36)
+        # Read the previous_output (input) hash: 34 bytes
+        self._prevOutput = self.read_next(32)
+
+        # Read the index of the previous output (input)
+        self._prevIndex = self.read_next(4)
 
         # Read the script length: 1 byte
         self._scriptLength = self.read_next(1)
@@ -779,8 +813,10 @@ class TxIn(Common):
 
     def _print(self):
         if self.verb >= 5:
-            print "{0}Prev output: {1}".format(5*" "*2,
-                                               self.prevOutput)
+            print "{0}Prev hash: {1}".format(5*" "*2,
+                                             self.prevOutput)
+            print "{0}Prev index: {1}".format(5*" "*2,
+                                              self.prevIndex)
             print "{0}Script length: {1}".format(5*" "*2,
                                                  self.scriptLength)
             print "{0}Script sig: {1}".format(5*" "*2,
@@ -888,22 +924,22 @@ class TxOut(Common):
 
         # Add version
         pk = b"\00" + pk
-        if self.verb >= 5:
-            print "{0}pk + ver: {1}".format(" "*5, pk.encode("hex"))
+        if self.verb >= 6:
+            print "{0}pk + ver: {1}".format(" "*6, pk.encode("hex"))
 
         # Hash
         h = hash_SHA256_twice(pk)
-        if self.verb >= 5:
-            print "{0}hash: {1}".format(" "*5, h.encode("hex"))
+        if self.verb >= 6:
+            print "{0}hash: {1}".format(" "*6, h.encode("hex"))
         # Add first 4 bytes of second hash to pk (already hex)
         pk = pk + h[0:4]
-        if self.verb >= 5:
-            print "{0}pk + checksum: {1}".format(" "*5, pk.encode("hex"))
+        if self.verb >= 6:
+            print "{0}pk + checksum: {1}".format(" "*6, pk.encode("hex"))
 
         # Convert to base 58 (bin -> base58)
         b58 = base58.b58encode(pk)
-        if self.verb >= 5:
-            print "{0}b58: {1}".format(" "*5, b58)
+        if self.verb >= 6:
+            print "{0}b58: {1}".format(" "*6, b58)
 
         return b58
 
@@ -919,34 +955,34 @@ class TxOut(Common):
 
         # Decode input to binary
         pk = pk.decode("hex")
-        if self.verb >= 5:
-            print "{0}pk: {1}".format(" "*5, pk.encode("hex"))
+        if self.verb >= 6:
+            print "{0}pk: {1}".format(" "*6, pk.encode("hex"))
 
         # Hash SHA256
         h = hash_SHA256_ripemd160(pk)
-        if self.verb >= 5:
-            print "{0}SHA256: h1: {1}".format(" "*5, h.encode("hex"))
+        if self.verb >= 6:
+            print "{0}SHA256: h1: {1}".format(" "*6, h.encode("hex"))
 
         # Add version
         addr = b"\00" + h
-        if self.verb >= 5:
-            print "{0}version + addr: {1}".format(" "*5, addr.encode("hex"))
+        if self.verb >= 6:
+            print "{0}version + addr: {1}".format(" "*6, addr.encode("hex"))
 
         # Hash SHA256
         h2 = hash_SHA256_twice(h)
-        if self.verb >= 5:
-            print "{0}h3: {1}".format(" "*5, h2.encode("hex"))
+        if self.verb >= 6:
+            print "{0}h3: {1}".format(" "*6, h2.encode("hex"))
 
         # Get checksum
         cs = h2[0:4]
-        if self.verb >= 5:
-            print "{0}checksum: {1}".format(" "*5, cs.encode("hex"))
+        if self.verb >= 6:
+            print "{0}checksum: {1}".format(" "*6, cs.encode("hex"))
             print "{0}h2 + cs: {1}".format(" "*5, (h2 + cs).encode("hex"))
 
         # Add checksum and convert to base58
         b58 = base58.b58encode(addr + cs)
-        if self.verb >= 5:
-            print "{0}b58: {1}".format(" "*5, b58)
+        if self.verb >= 6:
+            print "{0}b58: {1}".format(" "*6, b58)
 
         return b58
 

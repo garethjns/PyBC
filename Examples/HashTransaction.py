@@ -26,41 +26,54 @@ dat = Dat(f,
 # Read a block
 dat.read_next_block()
 
-# Get a transaction
+# Get the first transaction from the gensis block
 trans = dat.blocks[0].trans[0]
 trans._print()
 
 
-# %%
-
-trans.version
-trans.txIn[0].prevOutput
-trans.nInputs
-trans.txIn[0].sequence
-trans.nOutputs
-trans.txOut[0].value
-trans.txOut[0].pkScript
-trans.lockTime
-
-
-# %%
+# %% Prepare header
 
 header = trans._version \
+        + trans._nInputs \
         + trans.txIn[0]._prevOutput \
-        + str(trans._nInputs) \
+        + trans.txIn[0]._prevIndex \
+        + trans.txIn[0]._scriptLength \
+        + trans.txIn[0]._scriptSig \
         + trans.txIn[0]._sequence \
-        + str(trans.nOutputs) \
-        + str(trans.txOut[0].value*50000000).decode("hex") \
+        + trans._nOutputs \
+        + trans.txOut[0]._value \
+        + trans.txOut[0]._pkScriptLen \
         + trans.txOut[0]._pkScript \
         + trans._lockTime
 
-print header.encode("hex"
-                    )
-# %%
-hash_SHA256_twice(header)
+print "\n"
+print header.encode("hex")
 
-# %% 
 
-trans.txIn[0]._print()
-trans.txIn[0].scriptSig
+# %% Hash with SHA256 twice
+# Also reverse
 
+print hash_SHA256_twice(header)[::-1].encode("hex")
+
+
+# %% Function version
+
+def prep_header(trans):
+    header = trans._version \
+            + trans._nInputs \
+            + trans.txIn[0]._prevOutput \
+            + trans.txIn[0]._prevIndex \
+            + trans.txIn[0]._scriptLength \
+            + trans.txIn[0]._scriptSig \
+            + trans.txIn[0]._sequence \
+            + trans._nOutputs \
+            + trans.txOut[0]._value \
+            + trans.txOut[0]._pkScriptLen \
+            + trans.txOut[0]._pkScript \
+            + trans._lockTime
+
+    return header
+
+
+header = prep_header(dat.blocks[0].trans[0])
+transHash = hash_SHA256_twice(header)[::-1].encode("hex")

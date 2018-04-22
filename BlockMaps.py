@@ -224,7 +224,10 @@ class TxInMap(TxIn):
     def _prevOutput(self):
         return self.read_range(r1=self._prevOutput_i[0],
                                r2=self._prevOutput_i[1])
-
+    @property
+    def _prevIndex(self):
+        return self.read_range(r1=self._prevIndex_i[0],
+                               r2=self._prevIndex_i[1])
     @property
     def _scriptLength(self):
         return self.read_range(r1=self._scriptLength_i[0],
@@ -242,8 +245,11 @@ class TxInMap(TxIn):
 
     def read_in(self):
         # TxIn:
-        # Read the previous_output: 36 bytes
-        self._prevOutput_i = self.map_next(36)
+        # Read the previous_output (input) hash: 34 bytess
+        self._prevOutput_i = self.map_next(34)
+
+        # Read the index of the previous output (input)
+        self._prevIndex_i = self.read_next(4)
 
         # Read the script length: 1 byte
         self._scriptLength_i = self.map_next(1)
