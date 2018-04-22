@@ -302,3 +302,9 @@ if __name__ == "__main__":
 
     # Verify it's correct
     datm.blocks[0].api_verify()
+
+    # %% Read chain - 1 step
+
+    c = Chain(verb=2,
+              datStart=2)
+    c.read_next_Dat()

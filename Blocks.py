@@ -6,10 +6,11 @@
 # %% Imports
 
 from datetime import datetime as dt
-from utils import hash_SHA256_twice, tqdm_off
+from utils import hash_SHA256_twice, hash_SHA256_ripemd160, tqdm_off, OP_CODES
 import mmap
 import time
 import requests
+import base58
 
 # Optional import for pretty waitbars
 try:
@@ -215,7 +216,7 @@ class Chain(Common):
             tqdm_runner = tqdm
         else:
             tqdm_runner = tqdm_off
-        
+
         for fi in tqdm_runner(range(self.datStart,
                                     self.datStart+self.datn)):
             d = self.readDat(datn=fi)
@@ -525,7 +526,7 @@ class Block(Common):
                 self.api_validated = 'Skipped'
                 if self.verb > 3:
                     print "{0}Validation skipped \n{0}{1}".format(" "*3,
-                                                               "_"*30)
+                                                                  "_"*30)
                 return
 
         # Query
@@ -562,9 +563,10 @@ class Block(Common):
 
         # Report
         if self.verb > 3:
-            print "{0}Validation passed: {1}\n{0}{2}".format(" "*3,
-                                                             self.api_validated,
-                                                             "_"*30)
+            print "{0}Validation passed: {1}\n{0}{2}".format(
+                                            " "*3,
+                                            self.api_validated,
+                                            "_"*30)
 
     def _print(self):
 
@@ -827,6 +829,128 @@ class TxOut(Common):
         """
         return self._pkScript.encode("hex")
 
+    @property
+    def parsed_pkScript(self):
+        return self.split_script()
+
+    @property
+    def outputAddr(self):
+
+        # Get the encoded address from the output script
+        script = self.split_script()
+        pk = script[script.index("PUSH_BYTES")+2]
+
+        # Decode the address
+        if len(pk) == 65:
+            addr = self.get_P2PKH()
+        elif len(pk) == 130:
+            addr = self.get_PK2Addr()
+        else:
+            addr = None
+
+        return addr
+
+    def split_script(self):
+        pk_op = self.pkScript
+        # Create list to store output script
+        script = []
+        # Use cursor to track position in string
+        cur = 0
+        # Loop over raw script - increments 4 bytes each iteration
+        # unless instructed otherwise
+        while cur < len(pk_op):
+            # Get the next 4 bytes
+            # Convert to int in base 16
+            op = int(pk_op[cur:cur+2], 16)
+
+            # Incremenet the cursor by 4 bytes
+            cur += 2
+
+            # If the code is between 1-75, it's a number of bytes
+            # to add to stack
+            if (op >= 1) & (op <= 75):
+                # Get these and add these to script
+                script += ['PUSH_BYTES', op, pk_op[cur:cur+op * 2]]
+                cur += op * 2
+            else:
+                # Otherwise, get the OP_CODE from the dictionary
+                # If it's for an undefined code, return the code number
+                script += [OP_CODES.get(op, op)]
+
+        return script
+
+    def get_P2PKH(self):
+        """
+        PK = public key in hex
+        """
+        # Get the parsed script
+        script = self.parsed_pkScript
+        pk = script[script.index("PUSH_BYTES")+2]
+
+        # Add version
+        pk = b"\00" + pk
+        if self.verb >= 5:
+            print "{0}pk + ver: {1}".format(" "*5, pk.encode("hex"))
+
+        # Hash
+        h = hash_SHA256_twice(pk)
+        if self.verb >= 5:
+            print "{0}hash: {1}".format(" "*5, h.encode("hex"))
+        # Add first 4 bytes of second hash to pk (already hex)
+        pk = pk + h[0:4]
+        if self.verb >= 5:
+            print "{0}pk + checksum: {1}".format(" "*5, pk.encode("hex"))
+
+        # Convert to base 58 (bin -> base58)
+        b58 = base58.b58encode(pk)
+        if self.verb >= 5:
+            print "{0}b58: {1}".format(" "*5, b58)
+
+        return b58
+
+    def get_PK2Addr(self):
+        """
+        PK = public key in hex
+
+        Work in bytes throughout (encode back to hex for any prints)
+        """
+        # Get the parsed script
+        script = self.parsed_pkScript
+        pk = script[script.index("PUSH_BYTES")+2]
+
+        # Decode input to binary
+        pk = pk.decode("hex")
+        if self.verb >= 5:
+            print "{0}pk: {1}".format(" "*5, pk.encode("hex"))
+
+        # Hash SHA256
+        h = hash_SHA256_ripemd160(pk)
+        if self.verb >= 5:
+            print "{0}SHA256: h1: {1}".format(" "*5, h.encode("hex"))
+
+        # Add version
+        addr = b"\00" + h
+        if self.verb >= 5:
+            print "{0}version + addr: {1}".format(" "*5, addr.encode("hex"))
+
+        # Hash SHA256
+        h2 = hash_SHA256_twice(h)
+        if self.verb >= 5:
+            print "{0}h3: {1}".format(" "*5, h2.encode("hex"))
+
+        # Get checksum
+        cs = h2[0:4]
+        if self.verb >= 5:
+            print "{0}checksum: {1}".format(" "*5, cs.encode("hex"))
+            print "{0}h2 + cs: {1}".format(" "*5, (h2 + cs).encode("hex"))
+
+        # Add checksum and convert to base58
+        b58 = base58.b58encode(addr + cs)
+        if self.verb >= 5:
+            print "{0}b58: {1}".format(" "*5, b58)
+
+        return b58
+
     def read_out(self):
         # TxOut:
         # Read value in Satoshis: 8 bytes
@@ -870,12 +994,12 @@ if __name__ == "__main__":
 
     # %% Read chain - 1 step
 
-    c = Chain(verb=2)
+    c = Chain(verb=3)
     c.read_next_Dat()
 
     # %% Read chain - all (in range)
 
-    c = Chain(verb=2,
+    c = Chain(verb=1,
               datStart=0,
               datn=3)
     c.read_all()
