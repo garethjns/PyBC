@@ -48,16 +48,10 @@ print resp.json()['mrkl_root']
 
 # %% Function version
 
-def ext_validate(block,
-                 lastTime=0,
-                 url="https://blockchain.info/rawblock/",
-                 pr=True):
-    """
-    Query a block hash from Blockchain.info's api. Check it matches the block
-    on size, merkle root, number of transactions, previous block hash
-
-    Respects apis request limting queries to 1 every 10s.
-    """
+def get_resp(h,
+             lastTime=0,
+             url="https://blockchain.info/rawblock/",
+             pr=True):
 
     # Wait if last query was less than 10s ago
     dTime = (time.time() - lastTime)
@@ -72,8 +66,29 @@ def ext_validate(block,
     # Record the last time
     lastTime = time.time()
 
-    # Get the json
-    jr = resp.json()
+    if resp.status_code == 200:
+        # Get the json
+        jr = resp.json()
+    else:
+        # Or return the response code on error
+        jr = resp.status_code
+
+    return jr
+
+
+def block_validate(block,
+                   pr=True):
+    """
+    Query a block hash from Blockchain.info's api. Check it matches the block
+    on size, merkle root, number of transactions, previous block hash
+
+    Respects apis request limting queries to 1 every 10s.
+    """
+
+    jr = get_resp(block.hash,
+                  lastTime=0,
+                  url="https://blockchain.info/rawblock/",
+                  pr=True)
 
     # Check size
     t1 = jr['size'] == block.blockSize
@@ -119,8 +134,38 @@ block = dat.blocks[0]
 # Reset timer
 lastTime = 0
 # Query using this block hash
-lastTime, result = ext_validate(block)
+lastTime, result = block_validate(block)
 
 # Run same query again to test wait timer
 print "\n"
-lastTime, result = ext_validate(block, lastTime)
+lastTime, result = block_validate(block, lastTime)
+
+
+# %% Transaction validation
+
+def trans_validate(block,
+                   pr=True):
+    """
+    Query a transaction hash from Blockchain.info's api.
+    Check it matches on:
+        - Stuff
+
+    Respects apis request limting queries to 1 every 10s.
+    """
+
+    jr = get_resp(block.hash,
+                  lastTime=0,
+                  url="https://blockchain.info/rawblock/",
+                  pr=True)
+
+    # Report
+    if pr:
+        if result:
+            print "Pass"
+        else:
+            print "Fail"
+
+    return lastTime, result
+
+# TODO:
+#    - Add transaction hash
