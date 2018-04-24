@@ -35,7 +35,7 @@ class BlockSizeMismatch(Exception):
 
 class Common():
     """
-    Functions common to Block, Transaction
+    Functions common to Block, Transaction. Handles cursor tracking.
     """
     def read_next(self, length,
                   asHex=False,
@@ -163,11 +163,21 @@ class Common():
 
         return m[r1:r2]
 
+
+class API():
+    """
+    Class for common API functions, handles last query time, verbosity etc.
+    """
+
+    # Keep track of last query time across objects
+    lastQueryTime = 99
+
     def api_wait(self,
                  wait=False,
                  ttw=11):
 
         # Wait if last query was less than 10s ago
+        print self.lastQueryTime
         dTime = (time.time() - self.lastQueryTime)
         if dTime <= ttw:
             if wait:
@@ -318,7 +328,6 @@ class Dat(Common):
         self.nBlock = -1
         self.verb = verb
         self.validateBlocks = validateBlocks
-        self.lastQueryTime = 0
 
     def reset(self):
         """
@@ -341,9 +350,10 @@ class Dat(Common):
 
         # Validate, if on
         if self.validateBlocks:
-            b.lastQueryTime = self.lastQueryTime
             b.api_verify()
-            self.lastQueryTime = b.lastQueryTime
+
+            # Update last query time
+            Block.lastQueryTime = b.lastQueryTime
 
         self.cursor = b.end
 
@@ -371,7 +381,7 @@ class Dat(Common):
 # %% Low level classes
 
 
-class Block(Common):
+class Block(Common, API):
     """
     Class representing single block (and transactions)
 
@@ -384,7 +394,8 @@ class Block(Common):
                  number=0,
                  source='',
                  verb=4,
-                 f=None):
+                 f=None,
+                 validateTrans=True):
 
         # Starting from the given cursor position, read block
         self.start = cursor
@@ -392,8 +403,8 @@ class Block(Common):
         self.mmap = mmap
         self.number = number
         self.verb = verb
-        self.lastQueryTime = 0
         self.f = f
+        self.validateTrans = validateTrans
 
         # Read header
         self.read_header()
@@ -548,9 +559,16 @@ class Block(Common):
 
             # Make transaction objects and table
             trans = Trans(self.mmap, fr,
-                          verb=self.verb,
-                          lastQueryTime=self.lastQueryTime)
+                          verb=self.verb)
             fr = trans.cursor
+            # Validate, if on
+            if self.validateTrans:
+                trans.api_verify()
+
+                # Update last query time
+                Trans.lastQueryTime = trans.lastQueryTime
+
+            # Save
             self.trans[t] = trans
 
         self.cursor = fr
@@ -640,7 +658,7 @@ class Block(Common):
                                                   self.nTransactions)
 
 
-class Trans(Common):
+class Trans(Common, API):
     """
     Class representing single transaction.
 
@@ -651,15 +669,13 @@ class Trans(Common):
     """
     def __init__(self, mmap, cursor,
                  verb=4,
-                 f=None,
-                 lastQueryTime=0):
+                 f=None):
 
         self.start = cursor
         self.cursor = cursor
         self.mmap = mmap
         self.verb = verb
         self.f = f
-        self.lastQueryTime = lastQueryTime
 
         # Get transaction info
         self.get_transaction()
@@ -1119,7 +1135,7 @@ if __name__ == "__main__":
 
     # %% Read chain - 1 step
 
-    c = Chain(verb=2)
+    c = Chain(verb=4)
     c.read_next_Dat()
 
     # %% Read chain - all (in range)
