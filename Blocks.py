@@ -170,7 +170,15 @@ class API():
     """
 
     # Keep track of last query time across objects
-    lastQueryTime = 99
+    _lastQueryTime = time.time()-11
+
+    @property
+    def lastQueryTime(self):
+        return dt.fromtimestamp(round(self._lastQueryTime))
+
+    def __init__(self,
+                 verb=3):
+        self.verb = verb
 
     def api_wait(self,
                  wait=False,
@@ -178,7 +186,7 @@ class API():
 
         # Wait if last query was less than 10s ago
         print self.lastQueryTime
-        dTime = (time.time() - self.lastQueryTime)
+        dTime = (time.time() - self._lastQueryTime)
         if dTime <= ttw:
             if wait:
                 sleep_time = ttw - dTime
@@ -210,7 +218,7 @@ class API():
         # Query
         resp = requests.get(url + self.hash)
         # Record the last time
-        self.lastQueryTime = time.time()
+        API._lastQueryTime = time.time()
 
         # Get the json
         jr = resp.json()
@@ -351,9 +359,6 @@ class Dat(Common):
         # Validate, if on
         if self.validateBlocks:
             b.api_verify()
-
-            # Update last query time
-            Block.lastQueryTime = b.lastQueryTime
 
         self.cursor = b.end
 
@@ -564,9 +569,6 @@ class Block(Common, API):
             # Validate, if on
             if self.validateTrans:
                 trans.api_verify()
-
-                # Update last query time
-                Trans.lastQueryTime = trans.lastQueryTime
 
             # Save
             self.trans[t] = trans
