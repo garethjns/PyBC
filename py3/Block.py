@@ -6,8 +6,10 @@
 # %% Imports
 
 from datetime import datetime as dt
-from py2.Common import Common, API
+from py3.Common import Common, API
 from pyx.utils import OP_CODES, hash_SHA256_twice, hash_SHA256_ripemd160
+
+import codecs
 
 import base58
 
@@ -48,10 +50,10 @@ class Block(Common, API):
 
         self.end = self.cursor
         if self.verb >= 3:
-            print "{0}Block ends at: {1}".format(self.verb*" "*2,
-                                                 self.end)
-            print "{0}{1}".format(3*" "*2,
-                                  "********************")
+            print("{0}Block ends at: {1}".format(self.verb*" "*2,
+                                                 self.end))
+            print("{0}{1}".format(3*" "*2,
+                                  "********************"))
 
         # Check size as expected
         self.verify()
@@ -61,42 +63,42 @@ class Block(Common, API):
         """
         Convert to hex
         """
-        return self._magic.encode("hex")
+        return codecs.encode(self._magic, "hex")
 
     @property
     def blockSize(self):
         """
         Reverse endedness, convert to hex, convert to int from base 16
         """
-        return int(self._blockSize[::-1].encode("hex"), 16)
+        return int(codecs.encode(self._blockSize[::-1], "hex"), 16)
 
     @property
     def version(self):
         """
         Convert to hex
         """
-        return self._version.encode("hex")
+        return codecs.encode(self._version, "hex")
 
     @property
     def prevHash(self):
         """
         Reverse, convert to hex
         """
-        return self._prevHash[::-1].encode("hex")
+        return codecs.encode(self._prevHash[::-1], "hex")
 
     @property
     def merkleRootHash(self):
         """
         Convert to hex
         """
-        return self._merkleRootHash[::-1].encode("hex")
+        return codecs.encode(self._merkleRootHash[::-1], "hex")
 
     @property
     def timestamp(self):
         """
         Convert to int from base 16
         """
-        return int(self._timestamp[::-1].encode("hex"), 16)
+        return int(codecs.encode(self._timestamp[::-1], "hex"), 16)
 
     @property
     def time(self):
@@ -105,21 +107,22 @@ class Block(Common, API):
         Reverse endedness, convert to hex, convert to int from base 16,
         convert to dt
         """
-        return dt.fromtimestamp(int(self._timestamp[::-1].encode("hex"), 16))
+        return dt.fromtimestamp(
+                int(codecs.encode(self._timestamp[::-1], "hex"), 16))
 
     @property
     def nBits(self):
         """
         Reverse endedness, convert to hex, convert to int from base 16
         """
-        return int(self._nBits[::-1].encode("hex"), 16)
+        return int(codecs.encode(self._nBits[::-1], "hex"), 16)
 
     @property
     def nonce(self):
         """
         Reverse endedness, convert to hex, convert to int from base 16
         """
-        return int(self._nonce[::-1].encode("hex"), 16)
+        return int(codecs.encode(self._nonce[::-1], "hex"), 16)
 
     @property
     def nTransactions(self):
@@ -131,7 +134,8 @@ class Block(Common, API):
 
     @property
     def hash(self):
-        return hash_SHA256_twice(self.prep_header())[::-1].encode("hex")
+        return hash_SHA256_twice(
+                codecs.encode(self.prep_header())[::-1], "hex")
 
     def prep_header(self):
         """
@@ -231,8 +235,8 @@ class Block(Common, API):
         """
 
         if self.verb > 3:
-            print "{0}{1}Validating{1}".format(" "*3,
-                                               "_"*10)
+            print("{0}{1}Validating{1}".format(" "*3,
+                                               "_"*10))
 
         jr = self.api_get(url=url,
                           wait=False)
@@ -255,37 +259,37 @@ class Block(Common, API):
 
         # Report
         if self.verb > 3:
-            print "{0}Validation passed: {1}\n{0}{2}".format(
+            print("{0}Validation passed: {1}\n{0}{2}".format(
                                             " "*3,
                                             self.api_validated,
-                                            "_"*30)
+                                            "_"*30))
 
     def _print(self):
 
         if self.verb >= 3:
-            print "{0}{1}Read block{1}".format(3*" "*2,
-                                               "*"*10)
-            print "{0}Beginning at: {1}".format(3*" "*2,
-                                                self.start)
-            print "{0}magic: {1}".format(3*" "*2,
-                                         self.magic)
-            print "{0}block_size: {1}".format(3*" "*2,
-                                              self.blockSize)
-            print "{0}version: {1}".format(3*" "*2,
-                                           self.version)
-            print "{0}prevHash: {1}".format(3*" "*2,
-                                            self.prevHash)
-            print "{0}merkle_root: {1}".format(3*" "*2,
-                                               self.merkleRootHash)
-            print "{0}timestamp: {1}: {2}".format(3*" "*2,
+            print("{0}{1}Read block{1}".format(3*" "*2,
+                                               "*"*10))
+            print("{0}Beginning at: {1}".format(3*" "*2,
+                                                self.start))
+            print("{0}magic: {1}".format(3*" "*2,
+                                         self.magic))
+            print("{0}block_size: {1}".format(3*" "*2,
+                                              self.blockSize))
+            print("{0}version: {1}".format(3*" "*2,
+                                           self.version))
+            print("{0}prevHash: {1}".format(3*" "*2,
+                                            self.prevHash))
+            print("{0}merkle_root: {1}".format(3*" "*2,
+                                               self.merkleRootHash))
+            print("{0}timestamp: {1}: {2}".format(3*" "*2,
                                                   self.timestamp,
-                                                  self.time)
-            print "{0}nBits: {1}".format(3*" "*2,
-                                         self.nBits)
-            print "{0}nonce: {1}".format(3*" "*2,
-                                         self.nonce)
-            print "{0}n transactions: {1}".format(3*" "*2,
-                                                  self.nTransactions)
+                                                  self.time))
+            print("{0}nBits: {1}".format(3*" "*2,
+                                         self.nBits))
+            print("{0}nonce: {1}".format(3*" "*2,
+                                         self.nonce))
+            print("{0}n transactions: {1}".format(3*" "*2,
+                                                  self.nTransactions))
 
 
 class Trans(Common, API):
@@ -316,28 +320,28 @@ class Trans(Common, API):
         """
         Convert to hex
         """
-        return self._version.encode("hex")
+        return codecs.encode(self._version, "hex")
 
     @property
     def nInputs(self):
         """
         Reverse endedness, convert to hex, convert to int in base 16
         """
-        return int(self._nInputs[::-1].encode("hex"), 16)
+        return int(codecs.encode(self._nInputs[::-1], "hex"), 16)
 
     @property
     def nOutputs(self):
         """
         Reverse endedness, convert to hex, convert to int in base 16
         """
-        return int(self._nOutputs[::-1].encode("hex"), 16)
+        return int(codecs.encode(self._nOutputs[::-1], "hex"), 16)
 
     @property
     def lockTime(self):
         """
         Convert to hex
         """
-        return self._lockTime.encode("hex")
+        return codecs.encode(self._lockTime, "hex")
 
     @property
     def hash(self):
@@ -345,7 +349,7 @@ class Trans(Common, API):
         Get prepared header, hash twice with SHA256, reverse, convert to hex
         """
         header = self.prep_header()
-        return hash_SHA256_twice(header)[::-1].encode("hex")
+        return codecs.encode(hash_SHA256_twice(header)[::-1], "hex")
 
     def get_transaction(self):
 
@@ -403,8 +407,8 @@ class Trans(Common, API):
         """
 
         if self.verb > 3:
-            print "{0}{1}Validating{1}".format(" "*3,
-                                               "_"*10)
+            print("{0}{1}Validating{1}".format(" "*3,
+                                               "_"*10))
 
         jr = self.api_get(url=url,
                           wait=False)
@@ -422,10 +426,10 @@ class Trans(Common, API):
 
         # Report
         if self.verb > 3:
-            print "{0}Validation passed: {1}\n{0}{2}".format(
+            print("{0}Validation passed: {1}\n{0}{2}".format(
                                             " "*3,
                                             self.api_validated,
-                                            "_"*30)
+                                            "_"*30))
 
     def prep_header(self):
         header = self._version \
@@ -445,29 +449,29 @@ class Trans(Common, API):
 
     def _print(self):
         if self.verb >= 4:
-            print "{0}{1}Read transaction{1}".format(4*" "*2,
-                                                     "*"*10)
-            print "{0}Beginning at: {1}".format(4*" "*2,
-                                                self.start)
-            print "{0}Ending at: {1}".format(4*" "*2,
-                                             self.end)
-            print "{0}Transaction version: {1}".format(4*" "*2,
-                                                       self.version)
-            print "{0}nInputs: {1}".format(4*" "*2,
-                                           self.nInputs)
+            print("{0}{1}Read transaction{1}".format(4*" "*2,
+                                                     "*"*10))
+            print("{0}Beginning at: {1}".format(4*" "*2,
+                                                self.start))
+            print("{0}Ending at: {1}".format(4*" "*2,
+                                             self.end))
+            print("{0}Transaction version: {1}".format(4*" "*2,
+                                                       self.version))
+            print("{0}nInputs: {1}".format(4*" "*2,
+                                           self.nInputs))
             # Print inputs
             for inp in self.txIn:
                 inp._print()
-            print "{0}nOutputs: {1}".format(4*" "*2,
-                                            self.nOutputs)
+            print("{0}nOutputs: {1}".format(4*" "*2,
+                                            self.nOutputs))
             # Print outputs
             for oup in self.txOut:
                 oup._print()
-            print "{0}lock time: {1}".format(4*" "*2,
-                                             self.lockTime)
+            print("{0}lock time: {1}".format(4*" "*2,
+                                             self.lockTime))
 
-            print "{0}{1}Transaction ends{1}".format(4*" "*2,
-                                                     "*"*10)
+            print("{0}{1}Transaction ends{1}".format(4*" "*2,
+                                                     "*"*10))
 
 
 class TxIn(Common):
@@ -492,35 +496,35 @@ class TxIn(Common):
         """
         Convert to hex
         """
-        return self._prevOutput.encode("hex")
+        return codecs.encode(self._prevOutput, "hex")
 
     @property
     def prevIndex(self):
         """
         Convert to hex
         """
-        return self._prevIndex.encode("hex")
+        return codecs.encode(self._prevIndex, "hex")
 
     @property
     def scriptLength(self):
         """
         Convert to hex, convert to int from base 16
         """
-        return int(self._scriptLength.encode("hex"), 16)
+        return int(codecs.encode(self._scriptLength, "hex"), 16)
 
     @property
     def scriptSig(self):
         """
         Convert to hex
         """
-        return self._scriptSig.encode("hex")
+        return codecs.encode(self._scriptSig, "hex")
 
     @property
     def sequence(self):
         """
         Convert to hex
         """
-        return self._sequence.encode("hex")
+        return codecs.encode(self._sequence, "hex")
 
     def read_in(self):
         # TxIn:
@@ -541,16 +545,16 @@ class TxIn(Common):
 
     def _print(self):
         if self.verb >= 5:
-            print "{0}Prev hash: {1}".format(5*" "*2,
-                                             self.prevOutput)
-            print "{0}Prev index: {1}".format(5*" "*2,
-                                              self.prevIndex)
-            print "{0}Script length: {1}".format(5*" "*2,
-                                                 self.scriptLength)
-            print "{0}Script sig: {1}".format(5*" "*2,
-                                              self.scriptSig)
-            print "{0}Sequence: {1}".format(5*" "*2,
-                                            self.sequence)
+            print("{0}Prev hash: {1}".format(5*" "*2,
+                                             self.prevOutput))
+            print("{0}Prev index: {1}".format(5*" "*2,
+                                              self.prevIndex))
+            print("{0}Script length: {1}".format(5*" "*2,
+                                                 self.scriptLength))
+            print("{0}Script sig: {1}".format(5*" "*2,
+                                              self.scriptSig))
+            print("{0}Sequence: {1}".format(5*" "*2,
+                                            self.sequence))
 
 
 class TxOut(Common):
@@ -577,21 +581,21 @@ class TxOut(Common):
         Reverse endedness, convert to hexconvert to int from base 16,
         convert sat->btc
         """
-        return int(self._value[::-1].encode("hex"), 16)/100000000
+        return int(codecs.encode(self._value[::-1], "hex"), 16)/100000000
 
     @property
     def pkScriptLen(self):
         """
         Convert to hex, convert to int from base 16
         """
-        return int(self._pkScriptLen.encode("hex"), 16)
+        return int(codecs.encode(self._pkScriptLen, "hex"), 16)
 
     @property
     def pkScript(self):
         """
         Convert to hex
         """
-        return self._pkScript.encode("hex")
+        return codecs.encode(self._pkScript, "hex")
 
     @property
     def parsed_pkScript(self):
@@ -653,21 +657,22 @@ class TxOut(Common):
         # Add version
         pk = b"\00" + pk
         if self.verb >= 6:
-            print "{0}pk + ver: {1}".format(" "*6, pk.encode("hex"))
+            print("{0}pk + ver: {1}".format(" "*6, codecs.encode(pk, "hex")))
 
         # Hash
         h = hash_SHA256_twice(pk)
         if self.verb >= 6:
-            print "{0}hash: {1}".format(" "*6, h.encode("hex"))
+            print("{0}hash: {1}".format(" "*6, codecs.encode(h, "hex")))
         # Add first 4 bytes of second hash to pk (already hex)
         pk = pk + h[0:4]
         if self.verb >= 6:
-            print "{0}pk + checksum: {1}".format(" "*6, pk.encode("hex"))
+            print("{0}pk + checksum: {1}".format(
+                            " "*6, codecs.encode(pk, "hex")))
 
         # Convert to base 58 (bin -> base58)
         b58 = base58.b58encode(pk)
         if self.verb >= 6:
-            print "{0}b58: {1}".format(" "*6, b58)
+            print("{0}b58: {1}".format(" "*6, b58))
 
         return b58
 
@@ -684,33 +689,35 @@ class TxOut(Common):
         # Decode input to binary
         pk = pk.decode("hex")
         if self.verb >= 6:
-            print "{0}pk: {1}".format(" "*6, pk.encode("hex"))
+            print("{0}pk: {1}".format(" "*6, codecs.encode(pk, "hex")))
 
         # Hash SHA256
         h = hash_SHA256_ripemd160(pk)
         if self.verb >= 6:
-            print "{0}SHA256: h1: {1}".format(" "*6, h.encode("hex"))
+            print("{0}SHA256: h1: {1}".format(" "*6, codecs.encode(h, "hex")))
 
         # Add version
         h = b"\00" + h
         if self.verb >= 6:
-            print "{0}version + h1: {1}".format(" "*6, h.encode("hex"))
+            print("{0}version + h1: {1}".format(
+                            " "*6, codecs.encode(h, "hex")))
 
         # Hash SHA256
         h2 = hash_SHA256_twice(h)
         if self.verb >= 6:
-            print "{0}h2: {1}".format(" "*6, h2.encode("hex"))
+            print("{0}h2: {1}".format(" "*6, codecs.encode(h2, "hex")))
 
         # Get checksum
         cs = h2[0:4]
         if self.verb >= 6:
-            print "{0}checksum: {1}".format(" "*6, cs.encode("hex"))
-            print "{0}h2 + cs: {1}".format(" "*5, (h2 + cs).encode("hex"))
+            print("{0}checksum: {1}".format(" "*6, codecs.encode(cs, "hex")))
+            print("{0}h2 + cs: {1}".format(" "*5,
+                              codecs.encode(h2 + cs, "hex")))
 
         # Add checksum and convert to base58
         b58 = base58.b58encode(h + cs)
         if self.verb >= 6:
-            print "{0}b58: {1}".format(" "*6, b58)
+            print("{0}b58: {1}".format(" "*6, b58))
 
         return b58
 
@@ -730,9 +737,9 @@ class TxOut(Common):
 
     def _print(self):
         if self.verb >= 5:
-            print "{0}BTC value: {1}".format(5*" "*2,
-                                             self.value)
-            print "{0}pk script length: {1}".format(5*" "*2,
-                                                    self.pkScriptLen)
-            print "{0}pk script: {1}".format(5*" "*2,
-                                             self.pkScript)
+            print("{0}BTC value: {1}".format(5*" "*2,
+                                             self.value))
+            print("{0}pk script length: {1}".format(5*" "*2,
+                                                    self.pkScriptLen))
+            print("{0}pk script: {1}".format(5*" "*2,
+                                             self.pkScript))

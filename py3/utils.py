@@ -7,6 +7,8 @@ Created on Fri Apr 06 17:42:17 2018
 
 # %% Imports
 
+import codecs
+
 
 # %% Reading functions
 
@@ -15,4 +17,4 @@ def rev_hex(h):
     Reverse endedness of hex data by decoding to binary, reversing,
     and renecoding
     """
-    return h.decode("hex")[::-1].encode("hex")
+    return codecs.encode(h.decode("hex")[::-1], "hex")
