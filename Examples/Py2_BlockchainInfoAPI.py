@@ -7,7 +7,7 @@ Created on Sat Apr 21 12:37:05 2018
 Validate an imported block against Blockchain.info's api
 https://blockchain.info/api
 
-Respects apis request limting queries to 1 every 10s
+Respects API's request limting queries to 1 every 10s
 
 Queries for blocks are done using block hash, and are returned in json format
 """
@@ -16,7 +16,7 @@ Queries for blocks are done using block hash, and are returned in json format
 
 import requests
 import time
-from Blocks import Dat
+from py2.Chain import Dat
 
 
 # %% Get genesis block from Blockchain.info api

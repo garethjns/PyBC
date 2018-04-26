@@ -13,8 +13,8 @@ https://bitcoin.stackexchange.com/questions/2859/how-are-transaction-hashes-calc
 
 # %% Imports
 
-from utils import hash_SHA256_twice
-from Blocks import Dat
+from py2.utils import hash_SHA256_twice
+from py2.Chain import Dat
 
 
 # %% Get a transaction
@@ -77,3 +77,6 @@ def prep_header(trans):
 
 header = prep_header(dat.blocks[0].trans[0])
 transHash = hash_SHA256_twice(header)[::-1].encode("hex")
+
+print transHash
+

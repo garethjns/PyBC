@@ -7,7 +7,7 @@ Created on Fri Apr 06 16:24:39 2018
 
 # %% Imports
 
-from Blocks import Dat
+from py2.Chain import Dat
 
 import hashlib
 import mmap
@@ -48,6 +48,7 @@ def hash256_twice(s):
 
     return hh
 
+
 hash256_twice(gbHeader)
 
 
@@ -72,13 +73,14 @@ def prep_header(block):
 
     # Collect header hex
     header = block._version \
-           + block._prevHash \
-           + block._merkleRootHash \
-           + block._timestamp \
-           + block._nBits \
-           + block._nonce
+            + block._prevHash \
+            + block._merkleRootHash \
+            + block._timestamp \
+            + block._nBits \
+            + block._nonce
 
     return header
+
 
 # Import first block
 f = 'Blocks/blk00000.dat'

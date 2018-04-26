@@ -10,21 +10,7 @@ Created on Fri Apr 06 17:42:17 2018
 import hashlib
 
 
-# %% General functions
-
-def tqdm_off(x):
-    return x
-
-
-# %% Dicts
-
-OP_CODES = {172: "OP_CHECKSIG",
-            118: "OP_DUP",
-            169: "OP_HASH160",
-            136: "OP_EQUALVERIFY"}
-
-
-# %% Block functions
+# %% Reading functions
 
 def rev_hex(h):
     """
@@ -33,6 +19,8 @@ def rev_hex(h):
     """
     return h.decode("hex")[::-1].encode("hex")
 
+
+# %% Hashing functions
 
 def hash_SHA256(by):
     """

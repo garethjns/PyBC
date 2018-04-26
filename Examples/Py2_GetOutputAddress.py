@@ -32,11 +32,12 @@ TODO:
 
 # %% Imports
 
-from Blocks import Chain
+from py2.Chain import Chain
 import hashlib
 import base58
 
-from Examples.DecodeOutputScripts import split_script
+# See Examples/DecodeOutputScripts.py
+from pyx.utils import split_script
 
 
 # %% Implement example from:

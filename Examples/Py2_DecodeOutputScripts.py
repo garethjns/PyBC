@@ -2,7 +2,7 @@
 
 # %% Imports
 
-from Blocks import Chain
+from py2.Chain import Chain
 
 
 # %% Import a block
