@@ -198,7 +198,7 @@ def trans_validate(trans,
     Handles single input
     """
 
-    jr = get_resp(trans._hash,
+    jr = get_resp(trans.hash,
                   lastTime=0,
                   url="https://blockchain.info/rawtx/",
                   pr=True)
