@@ -205,12 +205,13 @@ class API():
             return None
 
         # Query
-        resp = requests.get(url + self.hash)
+        try:
+            resp = requests.get(url + self.hash)
+        except:
+            return None
+
         # Record the last time
         API._lastQueryTime = time.time()
-
-        # Get the json
-        jr = resp.json()
 
         if resp.status_code == 200:
             # Get the json

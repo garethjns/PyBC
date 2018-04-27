@@ -134,8 +134,8 @@ class Block(Common, API):
 
     @property
     def hash(self):
-        return hash_SHA256_twice(
-                codecs.encode(self.prep_header())[::-1], "hex")
+        return codecs.encode(
+                hash_SHA256_twice(self.prep_header()[::-1]), "hex")
 
     def prep_header(self):
         """

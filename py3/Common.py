@@ -206,12 +206,17 @@ class API():
             return None
 
         # Query
-        resp = requests.get(url + str(self.hash))
+        try:
+            resp = requests.get(url + str(self.hash))
+        except: # ConnectionError:
+            # If no connection
+            # Don't try again for ~20s
+            # Record the last time
+            API._lastQueryTime = time.time() + 10
+            return None
+
         # Record the last time
         API._lastQueryTime = time.time()
-
-        # Get the json
-        jr = resp.json()
 
         if resp.status_code == 200:
             # Get the json
