@@ -61,9 +61,9 @@ class Block(Common, API):
     @property
     def magic(self):
         """
-        Convert to hex
+        Convert to hex, decode bytes to str
         """
-        return codecs.encode(self._magic, "hex")
+        return codecs.encode(self._magic, "hex").decode()
 
     @property
     def blockSize(self):
@@ -75,55 +75,52 @@ class Block(Common, API):
     @property
     def version(self):
         """
-        Convert to hex
+        Convert to hex, decode bytes to str
         """
-        return codecs.encode(self._version, "hex")
+        return codecs.encode(self._version, "hex").decode()
 
     @property
     def prevHash(self):
         """
-        Reverse, convert to hex
+        Reverse, convert to hex, decode bytes to str
         """
-        return codecs.encode(self._prevHash[::-1], "hex")
+        return codecs.encode(self._prevHash[::-1], "hex").decode()
 
     @property
     def merkleRootHash(self):
         """
-        Convert to hex
+        Reverse, convert to hex, decode bytes to str
         """
-        return codecs.encode(self._merkleRootHash[::-1], "hex")
+        return codecs.encode(self._merkleRootHash[::-1], "hex").decode()
 
     @property
     def timestamp(self):
         """
-        Convert to int from base 16
+        Reverse, convert to hex, convert to int from base 16
         """
         return int(codecs.encode(self._timestamp[::-1], "hex"), 16)
 
     @property
     def time(self):
         """
-        Doesn't have _time equivilent.
-        Reverse endedness, convert to hex, convert to int from base 16,
-        convert to dt
+        Doesn't have _time equivilent, uses self._timestamp
         """
-        return dt.fromtimestamp(
-                int(codecs.encode(self._timestamp[::-1], "hex"), 16))
+        return dt.fromtimestamp(self.timestamp)
 
     @property
     def nBits(self):
         """
-        Reverse endedness, convert to hex, convert to int from base 16
+        Reverse , convert to hex, convert to int from base 16
         """
         return int(codecs.encode(self._nBits[::-1], "hex"), 16)
 
     @property
     def nonce(self):
         """
-        Reverse endedness, convert to hex, convert to int from base 16
+        Reverse, convert to hex, convert to int from base 16
         """
         return int(codecs.encode(self._nonce[::-1], "hex"), 16)
-
+    
     @property
     def nTransactions(self):
         """
@@ -133,9 +130,18 @@ class Block(Common, API):
         return ord(self._nTransactions)
 
     @property
+    def _hash(self):
+        """
+        Get prepapred header
+        """
+        return hash_SHA256_twice(self.prep_header())
+
+    @property
     def hash(self):
-        return codecs.encode(
-                hash_SHA256_twice(self.prep_header()[::-1]), "hex")
+        """
+        Reverse prepared header, convert to hex, decode bytes to str
+        """
+        return codecs.encode(self._hash[::-1], "hex").decode()
 
     def prep_header(self):
         """
@@ -318,9 +324,9 @@ class Trans(Common, API):
     @property
     def version(self):
         """
-        Convert to hex
+        Convert to hex, decode bytes to str
         """
-        return codecs.encode(self._version, "hex")
+        return codecs.encode(self._version, "hex").decode()
 
     @property
     def nInputs(self):
@@ -339,17 +345,21 @@ class Trans(Common, API):
     @property
     def lockTime(self):
         """
-        Convert to hex
+        Convert to hex, decode bytes to str
         """
-        return codecs.encode(self._lockTime, "hex")
+        return codecs.encode(self._lockTime, "hex").decode()
+
+    @property
+    def _hash(self):
+        return hash_SHA256_twice(self.prep_header())
 
     @property
     def hash(self):
         """
-        Get prepared header, hash twice with SHA256, reverse, convert to hex
+        Get prepared header, hash twice with SHA256, reverse, convert to hex,
+        decode bytes to str
         """
-        header = self.prep_header()
-        return codecs.encode(hash_SHA256_twice(header)[::-1], "hex")
+        return codecs.encode(self._hash[::-1], "hex").decode()
 
     def get_transaction(self):
 
@@ -494,16 +504,16 @@ class TxIn(Common):
     @property
     def prevOutput(self):
         """
-        Convert to hex
+        Convert to hex, decode bytes to str
         """
-        return codecs.encode(self._prevOutput, "hex")
+        return codecs.encode(self._prevOutput, "hex").decode()
 
     @property
     def prevIndex(self):
         """
-        Convert to hex
+        Convert to hex, decode bytes to str
         """
-        return codecs.encode(self._prevIndex, "hex")
+        return codecs.encode(self._prevIndex, "hex").decode()
 
     @property
     def scriptLength(self):
@@ -515,16 +525,16 @@ class TxIn(Common):
     @property
     def scriptSig(self):
         """
-        Convert to hex
+        Convert to hex, decode bytes to str
         """
-        return codecs.encode(self._scriptSig, "hex")
+        return codecs.encode(self._scriptSig, "hex").decode()
 
     @property
     def sequence(self):
         """
-        Convert to hex
+        Convert to hex, decode bytes to str
         """
-        return codecs.encode(self._sequence, "hex")
+        return codecs.encode(self._sequence, "hex").decode()
 
     def read_in(self):
         # TxIn:
@@ -593,9 +603,9 @@ class TxOut(Common):
     @property
     def pkScript(self):
         """
-        Convert to hex
+        Convert to hex, decode bytes to str
         """
-        return codecs.encode(self._pkScript, "hex")
+        return codecs.encode(self._pkScript, "hex").decode()
 
     @property
     def parsed_pkScript(self):
@@ -603,6 +613,9 @@ class TxOut(Common):
 
     @property
     def outputAddr(self):
+        """
+        Split script, detect output type, get address
+        """
         # Get the encoded address from the output script
         script = self.split_script()
         pk = script[script.index("PUSH_BYTES")+2]
@@ -615,7 +628,7 @@ class TxOut(Common):
         else:
             addr = None
 
-        return addr
+        return addr.decode()
 
     def split_script(self):
         pk_op = self.pkScript
@@ -687,7 +700,7 @@ class TxOut(Common):
         pk = script[script.index("PUSH_BYTES")+2]
 
         # Decode input to binary
-        pk = pk.decode("hex")
+        pk = codecs.decode(pk, "hex")
         if self.verb >= 6:
             print("{0}pk: {1}".format(" "*6, codecs.encode(pk, "hex")))
 

@@ -62,10 +62,9 @@ def get_resp(h,
         time.sleep(sleep_time)
 
     # Query
-    try:
-        resp = requests.get(url + h)
-    except:
-        return None
+    print(url+h)
+    resp = requests.get(url + h)
+
     # Record the last time
     lastTime = time.time()
 
@@ -74,45 +73,50 @@ def get_resp(h,
         jr = resp.json()
     else:
         # Or return the response code on error
-        jr = resp.status_code
+        print(resp.status_code)
+        jr = None
 
     return jr
 
 
 def block_validate(block,
-                   pr=True):
+                   pr=True,
+                   **kwargs):
     """
     Query a block hash from Blockchain.info's api. Check it matches the block
     on size, merkle root, number of transactions, previous block hash
 
     Respects apis request limting queries to 1 every 10s.
     """
-
+    # Wait if last query was less than 10s ago
     jr = get_resp(block.hash,
-                  lastTime=0,
                   url="https://blockchain.info/rawblock/",
-                  pr=True)
+                  **kwargs)
 
-    # Check size
-    t1 = jr['size'] == block.blockSize
-    if pr:
-        print(t1)
+    if jr is not None:
+        # Check size
+        t1 = jr['size'] == block.blockSize
+        if pr:
+            print(t1)
 
-    # Check merkle root
-    t2 = jr['mrkl_root'] == block.merkleRootHash
-    if pr:
-        print(t2)
+        # Check merkle root
+        t2 = jr['mrkl_root'] == block.merkleRootHash
+        if pr:
+            print(t2)
 
-    # Check number of transactions
-    t3 = jr['n_tx'] == block.nTransactions
-    if pr:
-        print(t3)
+        # Check number of transactions
+        t3 = jr['n_tx'] == block.nTransactions
+        if pr:
+            print(t3)
 
-    # Check previous block hash
-    t4 = jr['prev_block'] == block.prevHash
-    if pr:
-        print(t4)
+        # Check previous block hash
+        t4 = jr['prev_block'] == block.prevHash
+        if pr:
+            print(t4)
 
+    else:
+        t1 = t2 = t3 = t4 = False
+   
     # The the overall result
     result = t1 & t2 & t3 & t4
 
@@ -169,7 +173,7 @@ else:
 print(resp.json())
 
 # Print individual fields, eg
-print( "\n")
+print("\n")
 # Script from input 0
 print(resp.json()['inputs'][0]['script'])
 # Transaction hash
@@ -194,7 +198,7 @@ def trans_validate(trans,
     Handles single input
     """
 
-    jr = get_resp(trans.hash,
+    jr = get_resp(trans._hash,
                   lastTime=0,
                   url="https://blockchain.info/rawtx/",
                   pr=True)

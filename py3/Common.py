@@ -235,7 +235,7 @@ class API():
 
         # Iterate over and compare fields
         result = True
-        for k, v in validationFields.iteritems():
+        for k, v in validationFields.items():
             test = k == v
             if self.verb > 3:
                 print("{0}{1} | {2}: {3}".format(" "*3,
