@@ -197,21 +197,24 @@ class Block(Common, API):
         Read transaction information in block
         """
         self.trans = {}
-        fr = self.cursor
         for t in range(self.nTransactions):
 
-            # Make transaction objects and table
-            trans = Trans(self.mmap, fr,
+            # Make transaction objects (and table later?)
+            trans = Trans(self.mmap, self.cursor,
                           verb=self.verb)
-            fr = trans.cursor
+            
+            # Read the transaction
+            trans = trans.get_transaction()
+            
             # Validate, if on
             if self.validateTrans:
                 trans.api_verify()
-
+            
+            # Update cursor
+            self.cursor = trans.cursor
+            
             # Save
             self.trans[t] = trans
-
-        self.cursor = fr
 
     def verify(self):
         """
@@ -317,10 +320,6 @@ class Trans(Common, API):
         self.verb = verb
         self.f = f
 
-        # Get transaction info
-        self.get_transaction()
-        self._print()
-
     @property
     def version(self):
         """
@@ -370,37 +369,42 @@ class Trans(Common, API):
         self._nInputs = self.read_var()
 
         # Read the inputs (variable bytes)
-        inputs = []
+        self.txIn = []
         for inp in range(self.nInputs):
+            # Create the TxIn object
             txIn = TxIn(self.mmap, self.cursor,
                         verb=self.verb)
-            inputs.append(txIn)
+            
+            # Read the input data and append to inputs in Trans object
+            self.txIn.append(txIn.read_in())
 
             # Update cursor position to the end of this input
             self.cursor = txIn.cursor
-
-        self.txIn = inputs
 
         # Read number of outputs: VarInt 1-9 bytes (or CVarInt?)
         self._nOutputs = self.read_var()
 
         # Read the outputs (varible bytes)
-        outputs = []
+        self.txOut = []
         for oup in range(self.nOutputs):
+            # Create TxOut object
             txOut = TxOut(self.mmap, self.cursor,
                           verb=self.verb)
-            outputs.append(txOut)
+            
+            # Read the output data and append to outputs in Trans object
+            self.txOut.append(txOut.read_out())
 
             # Update cursor position to the end of this output
             self.cursor = txOut.cursor
-
-        self.txOut = outputs
 
         # Read the locktime (4 bytes)
         self._lockTime = self.read_next(4)
 
         # Record the end for refernece, remove later?
         self.end = self.cursor
+        
+        # Print (depends on verbosity)
+        self._print()
 
     def api_verify(self,
                    url="https://blockchain.info/rawtx/",
@@ -498,8 +502,6 @@ class TxIn(Common):
         self.verb = verb
         self.mmap = mmap
         self.cursor = cursor
-        # Read the input data
-        self.read_in()
 
     @property
     def prevOutput(self):
@@ -581,9 +583,6 @@ class TxOut(Common):
         self.verb = verb
         self.mmap = mmap
         self.cursor = cursor
-
-        # Read the output data
-        self.read_out()
 
     @property
     def value(self):
