@@ -206,17 +206,17 @@ class Block(Common, API):
             # Make transaction objects (and table later?)
             trans = Trans(self.mmap, self.cursor,
                           verb=self.verb)
-            
+
             # Read the transaction
             trans.get_transaction()
-            
+
             # Validate, if on
             if self.validateTrans:
                 trans.api_verify()
-            
+
             # Update cursor
             self.cursor = trans.cursor
-            
+
             # Save
             self.trans[t] = trans
 
@@ -378,9 +378,12 @@ class Trans(Common, API):
             # Create the TxIn object
             txIn = TxIn(self.mmap, self.cursor,
                         verb=self.verb)
-            
-            # Read the input data and append to inputs in Trans object
-            self.txIn.append(txIn.read_in())
+
+            # Read the input data
+            txIn.read_in()
+
+            # Append to inputs in Trans object
+            self.txIn.append(txIn)
 
             # Update cursor position to the end of this input
             self.cursor = txIn.cursor
@@ -394,9 +397,12 @@ class Trans(Common, API):
             # Create TxOut object
             txOut = TxOut(self.mmap, self.cursor,
                           verb=self.verb)
-            
-            # Read the output data and append to outputs in Trans object
-            self.txOut.append(txOut.read_out())
+
+            # Read the output data
+            txOut.read_out()
+
+            # Append to outputs in Trans object
+            self.txOut.append(txOut)
 
             # Update cursor position to the end of this output
             self.cursor = txOut.cursor
@@ -406,7 +412,7 @@ class Trans(Common, API):
 
         # Record the end for refernece, remove later?
         self.end = self.cursor
-        
+
         # Print (depends on verbosity)
         self._print()
 

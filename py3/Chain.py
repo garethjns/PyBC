@@ -69,7 +69,7 @@ class Chain(Common):
             tqdm_runner = tqdm
         else:
             tqdm_runner = tqdm_off
-        
+
         # Read requested range
         for fi in tqdm_runner(range(self.datStart,
                                     self.datStart+self.datn)):
