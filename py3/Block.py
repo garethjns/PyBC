@@ -10,7 +10,6 @@ from py3.Common import Common, API
 from pyx.utils import OP_CODES, hash_SHA256_twice, hash_SHA256_ripemd160
 
 import codecs
-
 import base58
 
 

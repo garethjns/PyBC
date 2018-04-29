@@ -131,7 +131,6 @@ class Dat(Common):
             b.api_verify()
 
         self.cursor = b.end
-
         self.nBlock += 1
 
         # Save block dat object - unordered at this point

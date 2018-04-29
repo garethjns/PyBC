@@ -5,6 +5,7 @@
 import time
 import requests
 import codecs
+import mmap
 
 from datetime import datetime as dt
 
@@ -146,7 +147,8 @@ class Common():
         # Reopen file
         # Don't assume already open, or keep
         f = open(self.f, 'rb')
-        m = mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ)
+        m = mmap.mmap(f.fileno(), 0, 
+                      access=mmap.ACCESS_READ)
 
         if r2 is None:
             r2 = r1+1
