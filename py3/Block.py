@@ -41,13 +41,14 @@ class Block(Common, API):
         self.f = f
         self.validateTrans = validateTrans
 
+    def read_block(self):
         # Read header
         self.read_header()
-        self._print()
-
+        
         # Read transactions
         self.read_trans()
-
+        
+        # Record end of block
         self.end = self.cursor
         if self.verb >= 3:
             print("{0}Block ends at: {1}".format(self.verb*" "*2,
@@ -191,6 +192,9 @@ class Block(Common, API):
 
         # Read the number of transactions: VarInt 1-9 bytes
         self._nTransactions = self.read_var()
+        
+        # Print (depends on verbosity)
+        self._print()
 
     def read_trans(self):
         """
@@ -204,7 +208,7 @@ class Block(Common, API):
                           verb=self.verb)
             
             # Read the transaction
-            trans = trans.get_transaction()
+            trans.get_transaction()
             
             # Validate, if on
             if self.validateTrans:

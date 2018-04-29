@@ -60,6 +60,7 @@ class Chain(Common):
     def read_all(self):
         """
         Read all blocks in .dat
+        Or in limited range specified by datStart -> datStart+datn
         """
         # If verb is low, use tqdm
         if self.verb <= 1:
@@ -68,7 +69,8 @@ class Chain(Common):
             tqdm_runner = tqdm
         else:
             tqdm_runner = tqdm_off
-
+        
+        # Read requested range
         for fi in tqdm_runner(range(self.datStart,
                                     self.datStart+self.datn)):
             d = self.readDat(datn=fi)
@@ -116,8 +118,13 @@ class Dat(Common):
         Read and return the next block
         Track cursor position
         """
+        
+        # Create Block object
         b = Block(self.mmap, self.cursor,
                   verb=self.verb)
+        
+        # Read it
+        b.read_block()
 
         # Validate, if on
         if self.validateBlocks:
