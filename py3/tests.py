@@ -1,17 +1,24 @@
+"""
+PyBC/ python -m py3.tests 
+"""
+
 # %% Imports
 
 import os
-# os.chdir(os.getcwd().replace('py3', ''))
-print(os.getcwd())
-
-import unittest
-from pyx.utils import hash_SHA256, hash_SHA256_twice
 import codecs
+import unittest
+import coverage
+
+from pyx.utils import hash_SHA256, hash_SHA256_twice
+from py3.Block import TxOut
 
 
 # %% Tests
 
-class TestHash(unittest.TestCase):
+class TestHashes(unittest.TestCase):
+    """
+    Test hash function in pyx.utils in python 3 environment
+    """
     def setUp(self):
         pass
     
@@ -32,8 +39,52 @@ class TestHash(unittest.TestCase):
         
     def tearDown(self):
         pass
+
     
+class TestTrans(unittest.TestCase):
+    """
+    Test py3.Block.Trans class methods
+    """
+    def setUp(self):
+        """
+        Prepare dummy object
+        """
+        pass
+    def tearDown(self):
+        pass
+
+    
+class TestTxOut(unittest.TestCase):
+    """
+    Test py3.Block.TxOut class methods
+    """
+    def setUp(self):
+        """
+        Prepare dummy object
+        """
+        self.txOut = TxOut(mmap=[], 
+                           cursor=1)
+    
+    def test_PK2Addr(self):
+        """
+        """
+        pk_op = b'04678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38c4f35504e51ec112de5c384df7ba0b8d578a4c702b6bf11d5f'
+        exp = b'1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa'
+        
+        self.assertEqual(self.txOut.PK2Addr(pk_op, 
+                                          verb=1), 
+                         exp)
+    
+    def tearDown(self):
+        pass
     
 if __name__ == '__main__':
     
+    cov = coverage.Coverage()
+    cov.start()
+    
     unittest.main()
+    
+    cov.stop()
+    cov.save()
+    ccov.html_report(directory='covhtml')

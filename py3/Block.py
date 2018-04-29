@@ -618,7 +618,7 @@ class TxOut(Common):
 
     @property
     def parsed_pkScript(self):
-        return self.split_script()
+          return TxOut.split_script(self.pkScript)
 
     @property
     def outputAddr(self):
@@ -626,7 +626,7 @@ class TxOut(Common):
         Split script, detect output type, get address
         """
         # Get the encoded address from the output script
-        script = self.split_script()
+        script = self.parsed_pkScript
         pk = script[script.index("PUSH_BYTES")+2]
 
         # Decode the address
@@ -639,8 +639,12 @@ class TxOut(Common):
 
         return addr.decode()
 
-    def split_script(self):
-        pk_op = self.pkScript
+    @staticmethod
+    def split_script(pk_op):
+        """
+        Split pk script into list of component data and OP_CODES, expects hex
+        """
+
         # Create list to store output script
         script = []
         # Use cursor to track position in string
@@ -667,82 +671,100 @@ class TxOut(Common):
                 script += [OP_CODES.get(op, op)]
 
         return script
-
-    def get_P2PKH(self):
+    
+    @staticmethod
+    def P2PKH(pk, 
+              verb=6):
         """
-        PK = public key in hex
+        pk = public key in hex
         """
-        # Get the parsed script
-        script = self.parsed_pkScript
-        pk = script[script.index("PUSH_BYTES")+2]
-
         # Add version
         pk = b"\00" + pk
-        if self.verb >= 6:
+        if verb >= 6:
             print("{0}pk + ver: {1}".format(" "*6, codecs.encode(pk, "hex")))
 
         # Hash
         h = hash_SHA256_twice(pk)
-        if self.verb >= 6:
+        if verb >= 6:
             print("{0}hash: {1}".format(" "*6, codecs.encode(h, "hex")))
         # Add first 4 bytes of second hash to pk (already hex)
         pk = pk + h[0:4]
-        if self.verb >= 6:
+        if verb >= 6:
             print("{0}pk + checksum: {1}".format(
                             " "*6, codecs.encode(pk, "hex")))
 
         # Convert to base 58 (bin -> base58)
         b58 = base58.b58encode(pk)
-        if self.verb >= 6:
+        if verb >= 6:
             print("{0}b58: {1}".format(" "*6, b58))
 
         return b58
-
-    def get_PK2Addr(self):
+    
+    def get_P2PKH(self):
         """
-        PK = public key in hex
-
-        Work in bytes throughout (encode back to hex for any prints)
+        Get script, extract public key, convert to address
         """
         # Get the parsed script
         script = self.parsed_pkScript
         pk = script[script.index("PUSH_BYTES")+2]
 
+        b58 = TxOut.P2PKH(pk)
+
+        return b58
+    
+    @staticmethod
+    def PK2Addr(pk,
+                verb=6):
+        """
+        pk = public key in hex
+        """
         # Decode input to binary
         pk = codecs.decode(pk, "hex")
-        if self.verb >= 6:
+        if verb >= 6:
             print("{0}pk: {1}".format(" "*6, codecs.encode(pk, "hex")))
 
         # Hash SHA256
         h = hash_SHA256_ripemd160(pk)
-        if self.verb >= 6:
+        if verb >= 6:
             print("{0}SHA256: h1: {1}".format(" "*6, codecs.encode(h, "hex")))
 
         # Add version
         h = b"\00" + h
-        if self.verb >= 6:
+        if verb >= 6:
             print("{0}version + h1: {1}".format(
                             " "*6, codecs.encode(h, "hex")))
 
         # Hash SHA256
         h2 = hash_SHA256_twice(h)
-        if self.verb >= 6:
+        if verb >= 6:
             print("{0}h2: {1}".format(" "*6, codecs.encode(h2, "hex")))
 
         # Get checksum
         cs = h2[0:4]
-        if self.verb >= 6:
+        if verb >= 6:
             print("{0}checksum: {1}".format(" "*6, codecs.encode(cs, "hex")))
-            print("{0}h2 + cs: {1}".format(" "*5,
+            print("{0}h2 + cs: {1}".format(" "*6,
                               codecs.encode(h2 + cs, "hex")))
 
         # Add checksum and convert to base58
         b58 = base58.b58encode(h + cs)
-        if self.verb >= 6:
+        if verb >= 6:
             print("{0}b58: {1}".format(" "*6, b58))
 
         return b58
+    
+    def get_PK2Addr(self):
+        """
+        Get script, extract public key, convert to address
+        """
+        # Get the parsed script
+        script = self.parsed_pkScript
+        pk = script[script.index("PUSH_BYTES")+2]
 
+        b58 = self.PK2Addr(pk)
+        
+        return b58
+        
     def read_out(self):
         # TxOut:
         # Read value in Satoshis: 8 bytes
