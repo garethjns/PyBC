@@ -79,10 +79,7 @@ class Chain(Common):
             # For now:
             # Save dat contents to Chain (dats ordered, blocks not)
             print(d)
-            self.dats[self.datni] = d
-
-            # TODO:
-            #   - dat contents here need to be unpacked and ordered
+            self.dats[d.index] = d
 
 
 class Dat(Common):
@@ -90,9 +87,16 @@ class Dat(Common):
     Class to represent .dat file on disk.
     Opens and maps .dat ready for reading
     """
+    _index = -1
+
     def __init__(self, f,
                  verb=4,
                  validateBlocks=True):
+
+        # Increment Dat counter and remember which one this is
+        Dat._index += 1
+        self.index = Dat._index
+
         self.f = f
         self.reset()
         self.cursor = 0
@@ -111,33 +115,40 @@ class Dat(Common):
         self.dat = open(self.f, 'rb')
         self.mmap = mmap.mmap(self.dat.fileno(), 0,
                               access=mmap.ACCESS_READ)
-        self.cursor = 0
 
-    def read_next_block(self):
+        # Reset cursor and block count
+        self.cursor = 0
+        Block._index = -1
+
+    def read_next_block(self,
+                        n=1):
         """
         Read and return the next block
         Track cursor position
         """
-        
-        # Create Block object
-        b = Block(self.mmap, self.cursor,
-                  verb=self.verb)
-        
-        # Read it
-        b.read_block()
 
-        # Validate, if on
-        if self.validateBlocks:
-            b.api_verify()
+        for ni in range(n):
+            # Create Block object
+            b = Block(self.mmap, self.cursor,
+                      verb=self.verb)
 
-        self.cursor = b.end
-        self.nBlock += 1
+            # Read it
+            b.read_block()
 
-        # Save block dat object - unordered at this point
-        self.blocks[self.nBlock] = b
+            # Validate, if on
+            if self.validateBlocks:
+                b.api_verify()
 
-        if self.verb == 2:
-            print("{0}Read block {1}".format(self.verb*" "*2, self.nBlock))
+            self.cursor = b.end
+            self.nBlock += 1
+
+            # Save block dat object - unordered at this point
+            # self.blocks[self.nBlock] = b
+            self.blocks[b.index] = b
+
+            if self.verb == 2:
+                print("{0}Read block {1}".format(self.verb*" "*2,
+                                                 self.nBlock))
 
     def read_all(self):
         """

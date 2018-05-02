@@ -24,18 +24,22 @@ class Block(Common, API):
     .name is a get method which converts the ._name into a more readable/useful
      format.
     """
+    # Count blocks that have been created
+    _index = -1
+
     def __init__(self, mmap, cursor,
-                 number=0,
-                 source='',
                  verb=4,
                  f=None,
                  validateTrans=True):
+
+        # Increment block counter and remember which one this is
+        Block._index += 1
+        self.index = Block._index
 
         # Starting from the given cursor position, read block
         self.start = cursor
         self.cursor = cursor
         self.mmap = mmap
-        self.number = number
         self.verb = verb
         self.f = f
         self.validateTrans = validateTrans
@@ -43,10 +47,10 @@ class Block(Common, API):
     def read_block(self):
         # Read header
         self.read_header()
-        
+
         # Read transactions
         self.read_trans()
-        
+
         # Record end of block
         self.end = self.cursor
         if self.verb >= 3:
