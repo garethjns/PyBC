@@ -46,7 +46,7 @@ Set the working directory to ````.../PyBc/```` and import required classes from 
 
 ### Reading blocks
 ````PYTHON
-from py3.Block import Block
+from py3.Block import Dat
 
 # Specify .dat to load
 f = 'Blocks/blk00000.dat' 
@@ -62,10 +62,10 @@ dat.read_next_block()
 dat.read_next_block()
 
 # Print the first blocks details
-dat.blocks[0]._print
+dat.blocks[0]._print()
 
 # Print the second block's first transaction
-dat.blocks[1].trans[0]._print
+dat.blocks[1].trans[0]._print()
 ````
 
 ### Read a whole ````.dat````
@@ -134,11 +134,18 @@ The py3.Common class holds reading methods and cursor tracking which are used by
 
 ## Classes
 
-### Chain
-Object and methods to handle whole chain. At the moment .dat files are ordered, but blocks aren't re-ordered by timestamp. Order in ````.dat```` depends on download order.
+### Chain and ChainMap
+Object and methods to handle whole chain. At the moment ````.dat```` files are ordered, but blocks aren't re-ordered by timestamp. Order in ````.dat```` depends on download order.
 
-Each child object in chain is stored in appropriate field of parent object (.dats, .blocks, .trans). These fields contain dictionaries keyed by {object number (int, counting from 0) : Object}:  
-Chain.dats -> {Dat objects}.blocks -> {Block objects}.trans -> {Transaction objects}
+Each child object in chain is stored in appropriate field of parent object (````.dats````, ````.blocks````, ````.trans````). These fields contain dictionaries keyed by {object number (int, counting from 0) : Object}:
+
+ - Chain.dats ->    
+   - {Dat objects}.blocks ->  
+     - {Block objects}.trans -> 
+       - {Trans objects}.TxIn/TxOut -> 
+         - {TxIn objects}
+         - {TxOut objects}
+  
 
 #### Usage
 
@@ -174,7 +181,7 @@ c.dats[0].blocks[1].trans[0]._print()
 ````.read_next_Dat()```` : Read next file  
 ````.read_all()```` : Read all ````.dat```` files (within specified range)  
 
-### Dat
+### Dat and DatMap
 Object and methods to handle .dat files downloaded by Core wallet. Uses mmap to map ````.dat```` file to memory and read byte by byte. Keeps track of how far through a file has been read (.cursor).  
 
 #### Usage
@@ -217,7 +224,7 @@ Object and methods to handle individual blocks.
 ````.magic```` : Magic number (4 bytes)  
 ````.blockSize```` : Block size (4 bytes)  
 ````.version```` : Version (4 bytes)    
-````.prevHash```` : Previous hash (32 bytes)
+````.prevHash```` : Previous hash (32 bytes)  
 ````.merkleRootHash```` : Merkle root hash (32 bytes)  
 ````.timestamp```` : Timestamp (4 bytes)  
 ````.nBits```` : Block size (4 bytes)  
@@ -275,7 +282,7 @@ Holds inputs for transaction.
 ````.sequence```` : Sequence (4 bytes).  
 
 #### Methods  
-````.read_in()```` : Read TxIn bytes in order.
+````.read_in()```` : Read TxIn bytes in order.  
 ````._print()```` : Print TxIn info.
 
 ### TxOut and TxOutMap
@@ -285,23 +292,23 @@ Holds outputs for transaction and methods to decode.
 **General**  
 ````.cursor```` : Current cursor position (int)  
 
-**Transaction outputs**
+**Transaction outputs**  
 ````.output```` : Transaction outputs (1 byte).  
 ````.value```` : Value in Satoshis (8 bytes).  
 ````.pkScriptLen```` = pkScriptLen (1 byte).  
 ````.pkScript```` : pkScript - contains output address (variable bytes).  
 
-**Useful properties**
+**Useful properties**  
 ````.parsed_pkScript```` : Return .pkScript as list of OP_CODES and data.  
 ````.outputAddr```` : Return bitcoin address for this output.  
 
 #### Methods 
-````read_out()```` : Read TxOut bytes in order.
+````read_out()```` : Read TxOut bytes in order.  
 ````.split_script()```` (static) : Split the output scrip (.pkScript) in to a list of OP_CODES and data to push to the stack.  
 ````.P2PKH()```` (static) : Get the output address for this object.  
 ````.get_P2PKH()```` : Convert (old?) public key to bitcoin address.  
 ````.PK2Addr()```` (static) : Convert public key to bitcoin address.  
-````.get_PK2Addr()```` : Get the output address for this object.
+````.get_PK2Addr()```` : Get the output address for this object.  
 ````._print()```` : Print TxOut info.
 
 ## Other classes
@@ -313,7 +320,7 @@ Handles API calls to blockchain.info's API.
 
 
 # Tests
-Some unit tests are included for the Python 3 version in .```../py3/````, and can be run from top level directory:
+Some unit tests are included for the Python 3 version in .````../py3/````, and can be run from top level directory:
 ````BASH
 python -m py3.tests
 ````

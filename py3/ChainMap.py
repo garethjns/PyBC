@@ -46,7 +46,7 @@ class DatMap(Dat):
 
 if __name__ == "__main__":
     ""
-    
+
     # %% Load .dat
 
     f = 'Blocks/blk00000.dat'
