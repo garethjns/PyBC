@@ -443,7 +443,7 @@ class Trans(Common, API):
         # Read the locktime (4 bytes)
         self._lockTime = self.read_next(4)
 
-        # Record the end for refernece, remove later?
+        # Record the end for reference, remove later?
         self.end = self.cursor
 
         # Print (depends on verbosity)

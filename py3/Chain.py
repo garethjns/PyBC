@@ -131,7 +131,8 @@ class Dat(Common):
         for ni in range(n):
             # Create Block object
             b = Block(self.mmap, self.cursor,
-                      verb=self.verb)
+                      verb=self.verb,
+                      f=self.f)
 
             # Read it
             b.read_block()

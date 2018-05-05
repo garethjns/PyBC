@@ -114,7 +114,8 @@ class BlockMap(Block):
 
             # Make transaction objects (and table later?)
             trans = TransMap(self.mmap, self.cursor,
-                             verb=self.verb)
+                             verb=self.verb,
+                             f=self.f)
 
             # Read the transaction
             trans.get_transaction()
@@ -162,7 +163,8 @@ class TransMap(Trans):
         for inp in range(self.nInputs):
             # Create the TxIn object
             txIn = TxInMap(self.mmap, self.cursor,
-                           verb=self.verb)
+                           verb=self.verb,
+                           f=self.f)
 
             # Read the input data
             txIn.read_in()
@@ -181,7 +183,8 @@ class TransMap(Trans):
         for oup in range(self.nOutputs):
             # Create TxOut object
             txOut = TxOutMap(self.mmap, self.cursor,
-                          verb=self.verb)
+                          verb=self.verb,
+                          f=self.f)
 
             # Read the output data
             txOut.read_out()
@@ -194,6 +197,9 @@ class TransMap(Trans):
 
         # Read the locktime (4 bytes)
         self._lockTime_i = self.map_next(4)
+        
+        # Record the end for reference, remove later?
+        self.end = self.cursor
 
         # Print (depends on verbosity)
         self._print()
