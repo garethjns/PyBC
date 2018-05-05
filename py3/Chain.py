@@ -7,6 +7,7 @@ from pyx.utils import tqdm_off
 from py3.Block import Block
 
 import mmap
+import pandas as pd
 
 # Optional import for pretty waitbars
 try:
@@ -162,6 +163,22 @@ class Dat(Common):
         if self.verb >= 2:
             print("\nRead {0} blocks".format(nBlock))
 
+    def to_pandas(self):
+        """
+        Output all loaded blocks to pandas df. Not particularly efficient.
+        """
+        df = pd.DataFrame()
+        
+        # For each loaded block
+        for k, v in dat.blocks.items():
+            # Get padnas row from block
+            b = v.to_pandas()
+            
+            # Concat to data frame
+            df = pd.concat((df, b),
+                           axis=0)
+
+        return df
 
 if __name__ == "__main__":
     ""
@@ -179,7 +196,18 @@ if __name__ == "__main__":
 
     # Verify it's correct (this may already have been done on import)
     dat.blocks[0].api_verify()
+    
+    # Output block data as dict
+    dat.blocks[0].to_dict()
+    
+    # %% Read another block and export
+    
+    # Read block
+    dat.read_next_block()
 
+    # Export to pandas
+    dat.to_pandas()
+    
     # %% Print example transaction
 
     dat.blocks[0].trans[0]._print()

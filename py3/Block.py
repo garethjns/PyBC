@@ -11,6 +11,7 @@ from pyx.utils import OP_CODES, hash_SHA256_twice, hash_SHA256_ripemd160
 
 import codecs
 import base58
+import pandas as pd
 
 
 # %% Low level classes
@@ -279,7 +280,36 @@ class Block(Common, API):
                                             " "*3,
                                             self.api_validated,
                                             "_"*30))
+    
+    def to_dict(self,
+            keys=['hash', 'start', 'end', 'blockSize', 'version', 'prevHash',
+                  'merkleRootHash', 'time', 'timestamp', 'nBits', 'nonce',
+                  'nTransactions']):
+        """
+        Return block attributes as dict
+    
+        Similar to block.__dict__ but gets properties not just attributes.
+        """
 
+        # Create output dict
+        bd = {}
+        for k in keys:
+            # Add each attribute with attribute name as key
+            bd[k] = getattr(self, k)
+    
+        return bd
+
+    def to_pandas(self):
+        """
+        Return dataframe row with block data
+    
+        Index on private block index
+        """
+        
+        bd = self.to_dict()
+        
+        return pd.DataFrame(bd,
+                            index=[self.index])
     def _print(self):
 
         if self.verb >= 3:
