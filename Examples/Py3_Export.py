@@ -104,3 +104,45 @@ plt.hist(datBlocks.end - datBlocks.start)
 plt.xlabel('Length, bytes')
 plt.ylabel('Count')
 plt.show()
+
+
+# %% Transaction to pandas
+# Reuse to_dict for TxIn, and TxOut.re
+
+def trans_to_dict(trans):
+    """
+    Convert transaction to dict, get (for now) first input and first output 
+    only
+    """
+
+    # Convert transction to dict
+    tr = to_dict(trans,
+            keys=['hash', 'version', 'nInputs', 'nOutputs', 'lockTime'])
+    
+    # Convert first txIn to dict    
+    txI = to_dict(trans.txIn[0],
+            keys=['prevOutput', 'prevIndex', 'scriptLength', 'sequence', 
+                  'scriptSig'])
+    
+    # Convert first txOut to dict
+    txO = to_dict(trans.txOut[0],
+            keys=['value', 'pkScriptLen', 'pkScript', 'outputAddr'])
+
+    # Combine in to single dict
+    tr.update(txI)
+    tr.update(txO)
+    
+    return tr
+
+trDict = trans_to_dict(dat.blocks[0].trans[0])
+    
+
+# %% To csv
+
+def to_csv(blocks, 
+           fn='test.csv'):
+    
+    blocks.to_csv(fn)
+    
+    
+to_csv(datBlocks)

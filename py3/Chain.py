@@ -2,7 +2,7 @@
 
 # %% Imports
 
-from py3.Common import Common
+from py3.Common import Common, Export
 from pyx.utils import tqdm_off
 from py3.Block import Block
 
@@ -27,7 +27,7 @@ class Chain(Common):
                  path='Blocks/',
                  datStart=0,
                  datn=10,
-                 verb=4):
+                 verb=1):
         self.datStart = datStart
         self.datn = datn
         self.datEnd = datStart+datn
@@ -83,7 +83,7 @@ class Chain(Common):
             self.dats[d.index] = d
 
 
-class Dat(Common):
+class Dat(Common, Export):
     """
     Class to represent .dat file on disk.
     Opens and maps .dat ready for reading
@@ -91,7 +91,7 @@ class Dat(Common):
     _index = -1
 
     def __init__(self, f,
-                 verb=4,
+                 verb=2,
                  validateBlocks=True):
 
         # Increment Dat counter and remember which one this is
@@ -164,15 +164,15 @@ class Dat(Common):
         if self.verb >= 2:
             print("\nRead {0} blocks".format(nBlock))
 
-    def to_pandas(self):
+    def blocks_to_pandas(self):
         """
         Output all loaded blocks to pandas df. Not particularly efficient.
         """
         df = pd.DataFrame()
         
         # For each loaded block
-        for k, v in dat.blocks.items():
-            # Get padnas row from block
+        for k, v in self.blocks.items():
+            # Get padnas row for block 
             b = v.to_pandas()
             
             # Concat to data frame
@@ -180,6 +180,42 @@ class Dat(Common):
                            axis=0)
 
         return df
+    
+    def trans_to_pandas_(self):
+        """
+        Output all loaded trans to pandas df. Not particularly efficient.
+        Abridged version
+        """
+        
+        df = pd.DataFrame()
+        
+        # For each block
+        for k, v in self.blocks.items():
+            # Get padnas rows for block transactions
+            ts = v.trans_to_pandas_()
+            
+            # Concat to data frame
+            df = pd.concat((df, ts),
+                           axis=0)
+    
+        return df
+    
+    def trans_to_pandas(self):
+        """
+        Output all loaded trans to pandas df. Not particularly efficient.
+        """
+        df = pd.DataFrame()
+        
+        for k, v in self.blocks.items():
+            # Get padnas rows for block transactions
+            b = v.trans_to_pandas()
+            
+            # Concat to data frame
+            df = pd.concat((df, b),
+                           axis=0)
+            
+        return df
+
 
 if __name__ == "__main__":
     ""
@@ -201,13 +237,14 @@ if __name__ == "__main__":
     # Output block data as dict
     dat.blocks[0].to_dict()
     
-    # %% Read another block and export
+    # %% Read another 10 blocks and export
     
     # Read block
-    dat.read_next_block()
+    dat.read_next_block(100)
 
-    # Export to pandas
-    dat.to_pandas()
+    # Export to pandas df
+    blockTable = dat.blocks_to_pandas()
+    blockTable.head()
     
     # %% Print example transaction
 
@@ -217,6 +254,11 @@ if __name__ == "__main__":
 
     dat.blocks[0].trans[0].api_verify()
 
+    # %% Convert block transaction to pandas df
+
+    transTable = dat.trans_to_pandas()
+    transTable.head()
+    
     # %% Read chain - 1 step
 
     c = Chain(verb=4)

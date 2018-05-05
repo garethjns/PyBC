@@ -8,6 +8,7 @@ import codecs
 import mmap
 
 from datetime import datetime as dt
+import pandas as pd
 
 
 # %% Error classes
@@ -175,15 +176,19 @@ class API():
     def api_wait(self,
                  wait=False,
                  ttw=11):
+        """
+        Waits, or not, depending on wait
+        """
 
         # Wait if last query was less than 10s ago
-        print(self.lastQueryTime)
+        # print(self.lastQueryTime)
         dTime = (time.time() - self._lastQueryTime)
         if dTime <= ttw:
             if wait:
                 sleep_time = ttw - dTime
                 if self.verb > 3:
-                    print("Sleeping for {0}".format(sleep_time))
+                    print("{0}Sleeping for {1}".format(" "*self.verb,
+                                                       sleep_time))
                 time.sleep(sleep_time)
                 return True
 
@@ -191,8 +196,11 @@ class API():
                 # Skip
                 self.api_validated = 'Skipped'
                 if self.verb > 3:
-                    print("{0}Validation skipped \n{0}{1}".format(" "*3,
-                                                                  "_"*30))
+                    """
+                    print("{0}Validation skipped \n{0}{1}".format(
+                                            " "*self.verb,
+                                            "_"*30))
+                    """
                 return False
         else:
             # No need to wait
@@ -201,6 +209,9 @@ class API():
     def api_get(self,
                 url="https://blockchain.info/rawblock/",
                 wait=False):
+        """
+        Returns none on fail or skip, otherwise returns json
+        """
 
         # Check last query time and either continue, wait and continue,
         # or don't wait (False returned)
@@ -215,6 +226,7 @@ class API():
             # Don't try again for ~20s
             # Record the last time
             API._lastQueryTime = time.time() + 10
+            
             return None
 
         # Record the last time
@@ -230,6 +242,10 @@ class API():
         return jr
 
     def api_check(self, jr, validationFields):
+        """
+        Check API json on specified validation fields. Retruns true if all 
+        tests pass, otherwise False.
+        """
 
         # If reponse wasn't valid, don't run checks
         if jr is None:
@@ -239,8 +255,8 @@ class API():
         result = True
         for k, v in validationFields.items():
             test = k == v
-            if self.verb > 3:
-                print("{0}{1} | {2}: {3}".format(" "*3,
+            if self.verb > 5:
+                print("{0}{1} | {2}: {3}".format(" "*self.verb,
                                                  v,
                                                  k,
                                                  test))
@@ -248,3 +264,46 @@ class API():
             result &= test
 
         return result
+
+
+# %% Export classes
+
+class Export():
+    def to_dict(self,
+                keys=['hash', 'start', 'end', 
+                      'blockSize', 'version', 'prevHash',
+                      'merkleRootHash', 'time', 'timestamp', 
+                      'nBits', 'nonce', 'nTransactions']):
+        """
+        Return object attributes as dict
+        
+        Similar to block.__dict__ but gets properties not just attributes.
+        """
+        
+        # Create output dict
+        bd = {}
+        for k in keys:
+            # Add each attribute with attribute name as key
+            bd[k] = getattr(self, k)
+        
+        return bd
+    
+    def to_pandas(self):
+        """
+        Return dataframe row with object data
+    
+        Index on object class index
+        """
+        
+        bd = self.to_dict()
+        
+        return pd.DataFrame(bd,
+                            index=[self.index])
+        
+    def to_csv(self, 
+               fn='test.csv'):
+        """
+        Save this object as .csv via pandas df
+        """
+    
+        self.to_pandas().to_csv(fn)

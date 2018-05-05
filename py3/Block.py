@@ -6,7 +6,7 @@
 # %% Imports
 
 from datetime import datetime as dt
-from py3.Common import Common, API
+from py3.Common import Common, API, Export
 from pyx.utils import OP_CODES, hash_SHA256_twice, hash_SHA256_ripemd160
 
 import codecs
@@ -16,7 +16,7 @@ import pandas as pd
 
 # %% Low level classes
 
-class Block(Common, API):
+class Block(Common, API, Export):
     """
     Class representing single block (and transactions)
 
@@ -29,7 +29,7 @@ class Block(Common, API):
     _index = -1
 
     def __init__(self, mmap, cursor,
-                 verb=4,
+                 verb=3,
                  f=None,
                  validateTrans=True):
 
@@ -237,6 +237,43 @@ class Block(Common, API):
         # if (self.end - self.start) != (self.blockSize + 8):
         #    raise BlockSizeMismatch
 
+
+    def trans_to_pandas_(self):
+        """
+        Concatenate data for all loaded trans, return as pandas df
+        Abridged version.
+        """
+
+        df = pd.DataFrame()
+        for k, v in self.trans.items():
+            # Use the Export.to_pandas method
+            t = v.to_pandas()
+            df = pd.concat((df, t),
+                           axis=0)
+    
+        return df
+
+    def trans_to_pandas(self):
+        """
+        Concatenate data for all loaded trans, return as pandas df
+        """
+
+        df = pd.DataFrame()
+        for k, v in self.trans.items():
+            # Use the full to pandas method
+            t = v.to_pandas_full()
+            df = pd.concat((df, t),
+                           axis=0)
+    
+        return df
+
+    def trans_to_csv(self,
+                     fn='transactions.csv'):
+        """
+        Output entire transaction to table
+        """
+        self.trans_to_pandas().to_csv(fn)
+        
     def api_verify(self,
                    url="https://blockchain.info/rawblock/",
                    wait=False):
@@ -251,7 +288,7 @@ class Block(Common, API):
             - Tidy printing
         """
 
-        if self.verb > 3:
+        if self.verb > 4:
             print("{0}{1}Validating{1}".format(" "*3,
                                                "_"*10))
 
@@ -281,35 +318,7 @@ class Block(Common, API):
                                             self.api_validated,
                                             "_"*30))
     
-    def to_dict(self,
-            keys=['hash', 'start', 'end', 'blockSize', 'version', 'prevHash',
-                  'merkleRootHash', 'time', 'timestamp', 'nBits', 'nonce',
-                  'nTransactions']):
-        """
-        Return block attributes as dict
-    
-        Similar to block.__dict__ but gets properties not just attributes.
-        """
 
-        # Create output dict
-        bd = {}
-        for k in keys:
-            # Add each attribute with attribute name as key
-            bd[k] = getattr(self, k)
-    
-        return bd
-
-    def to_pandas(self):
-        """
-        Return dataframe row with block data
-    
-        Index on private block index
-        """
-        
-        bd = self.to_dict()
-        
-        return pd.DataFrame(bd,
-                            index=[self.index])
     def _print(self):
 
         if self.verb >= 3:
@@ -338,7 +347,7 @@ class Block(Common, API):
                                                   self.nTransactions))
 
 
-class Trans(Common, API):
+class Trans(Common, API, Export):
     """
     Class representing single transaction.
 
@@ -347,10 +356,19 @@ class Trans(Common, API):
     .name is a get method which converts the ._name into a more readable/useful
      format.
     """
+    
+    # Object counter
+    _index = -1
+    
     def __init__(self, mmap, cursor,
                  verb=4,
                  f=None):
 
+    
+        # Increment block counter and remember which one this is
+        Trans._index += 1
+        self.index = Trans._index
+        
         self.start = cursor
         self.cursor = cursor
         self.mmap = mmap
@@ -448,6 +466,44 @@ class Trans(Common, API):
 
         # Print (depends on verbosity)
         self._print()
+        
+    def to_dict_full(self):
+        """
+        Convert transaction to dict, get (for now) first input and first output 
+        only
+        
+        Combines transction meta data and TxIn and TxOut
+        """
+    
+        # Convert transction to dict
+        tr = self.to_dict(keys=['hash', 'version', 
+                                'nInputs', 'nOutputs', 
+                                'lockTime'])
+    
+        # Convert first txIn to dict
+        txI = self.txIn[0].to_dict(keys=['prevOutput', 'prevIndex', 
+                                          'scriptLength', 'sequence', 
+                                          'scriptSig'])
+    
+        # Convert first txOut to dict
+        txO = self.txOut[0].to_dict(keys=['value', 'pkScriptLen', 
+                                          'pkScript', 'outputAddr'])
+    
+        # Combine in to single dict
+        tr.update(txI)
+        tr.update(txO)
+    
+        return tr
+    
+    def to_pandas_full(self):
+        """
+        Output entire transaction to table
+        """
+        tr = self.to_dict_full()
+        
+        return pd.DataFrame(tr,
+                            index=[self.index])
+        
 
     def api_verify(self,
                    url="https://blockchain.info/rawtx/",
@@ -463,8 +519,8 @@ class Trans(Common, API):
             - Tidy printing
         """
 
-        if self.verb > 3:
-            print("{0}{1}Validating{1}".format(" "*3,
+        if self.verb > 4:
+            print("{0}{1}Validating{1}".format(" "*4,
                                                "_"*10))
 
         jr = self.api_get(url=url,
@@ -482,9 +538,9 @@ class Trans(Common, API):
             self.api_validated = 'Skipped'
 
         # Report
-        if self.verb > 3:
+        if self.verb > 4:
             print("{0}Validation passed: {1}\n{0}{2}".format(
-                                            " "*3,
+                                            " "*4,
                                             self.api_validated,
                                             "_"*30))
 
@@ -531,7 +587,7 @@ class Trans(Common, API):
                                                      "*"*10))
 
 
-class TxIn(Common):
+class TxIn(Common, Export):
     def __init__(self, mmap, cursor,
                  n=None,
                  verb=5,
@@ -612,7 +668,7 @@ class TxIn(Common):
                                             self.sequence))
 
 
-class TxOut(Common):
+class TxOut(Common, Export):
     def __init__(self, mmap, cursor,
                  n=None,
                  verb=5,
@@ -707,28 +763,28 @@ class TxOut(Common):
     
     @staticmethod
     def P2PKH(pk, 
-              verb=6):
+              debug=False):
         """
         pk = public key in hex
         """
         # Add version
         pk = b"\00" + pk
-        if verb >= 6:
+        if debug:
             print("{0}pk + ver: {1}".format(" "*6, codecs.encode(pk, "hex")))
 
         # Hash
         h = hash_SHA256_twice(pk)
-        if verb >= 6:
+        if debug:
             print("{0}hash: {1}".format(" "*6, codecs.encode(h, "hex")))
         # Add first 4 bytes of second hash to pk (already hex)
         pk = pk + h[0:4]
-        if verb >= 6:
+        if debug:
             print("{0}pk + checksum: {1}".format(
                             " "*6, codecs.encode(pk, "hex")))
 
         # Convert to base 58 (bin -> base58)
         b58 = base58.b58encode(pk)
-        if verb >= 6:
+        if debug:
             print("{0}b58: {1}".format(" "*6, b58))
 
         return b58
@@ -747,41 +803,41 @@ class TxOut(Common):
     
     @staticmethod
     def PK2Addr(pk,
-                verb=6):
+                debug=False):
         """
         pk = public key in hex
         """
         # Decode input to binary
         pk = codecs.decode(pk, "hex")
-        if verb >= 6:
+        if debug:
             print("{0}pk: {1}".format(" "*6, codecs.encode(pk, "hex")))
 
         # Hash SHA256
         h = hash_SHA256_ripemd160(pk)
-        if verb >= 6:
+        if debug:
             print("{0}SHA256: h1: {1}".format(" "*6, codecs.encode(h, "hex")))
 
         # Add version
         h = b"\00" + h
-        if verb >= 6:
+        if debug:
             print("{0}version + h1: {1}".format(
                             " "*6, codecs.encode(h, "hex")))
 
         # Hash SHA256
         h2 = hash_SHA256_twice(h)
-        if verb >= 6:
+        if debug:
             print("{0}h2: {1}".format(" "*6, codecs.encode(h2, "hex")))
 
         # Get checksum
         cs = h2[0:4]
-        if verb >= 6:
+        if debug:
             print("{0}checksum: {1}".format(" "*6, codecs.encode(cs, "hex")))
             print("{0}h2 + cs: {1}".format(" "*6,
                               codecs.encode(h2 + cs, "hex")))
 
         # Add checksum and convert to base58
         b58 = base58.b58encode(h + cs)
-        if verb >= 6:
+        if debug:
             print("{0}b58: {1}".format(" "*6, b58))
 
         return b58
