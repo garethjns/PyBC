@@ -8,6 +8,7 @@ from py3.Block import Block
 
 import mmap
 import pandas as pd
+import pickle
 
 # Optional import for pretty waitbars
 try:
@@ -216,9 +217,40 @@ class Dat(Common, Export):
             
         return df
 
+    def to_pic(self, 
+           fn='test.pic'):
+
+        """
+        Serialise object to pickle object
+        (Not working)
+        """
+        
+        # Can't pickle .mmap objects 
+        out = self
+        out.dat = []
+        out.mmap = []
+        for bk, bv in out.blocks.items():
+            # From block
+            out.blocks[bk].mmap = []
+            for tk, tv in out.blocks[bk].trans.items():
+                # From transaction
+                out.blocks[bk].trans[tk].mmap = []
+                
+                for ti in range(len(out.blocks[bk].trans[tk].txIn)):
+                    # From TxIns
+                    out.blocks[bk].trans[tk].txIn[ti].mmap = []
+                for to in range(len(out.blocks[bk].trans[tk].txIn)):
+                    # From TxOuts
+                    out.blocks[bk].trans[tk].txOut[to].mmap = []
+        
+        p = open(fn, 'wb')
+        pickle.dump(out, p)
+        
 
 if __name__ == "__main__":
-    ""
+    """
+    Examples and tests
+    """
 
     # %% Load .dat
 
@@ -266,7 +298,7 @@ if __name__ == "__main__":
 
     # %% Read chain - all (in range)
 
-    c = Chain(verb=1,
+    c = Chain(verb=6,
               datStart=2,
               datn=3)
     c.read_all()

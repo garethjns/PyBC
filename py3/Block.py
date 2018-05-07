@@ -12,6 +12,7 @@ from pyx.utils import OP_CODES, hash_SHA256_twice, hash_SHA256_ripemd160
 import codecs
 import base58
 import pandas as pd
+import pickle
 
 
 # %% Low level classes
@@ -318,7 +319,27 @@ class Block(Common, API, Export):
                                             self.api_validated,
                                             "_"*30))
     
+    def to_pic(self,
+           fn='test.pic'):
 
+        """
+        Serialise object to pickle object
+        """
+        
+        # Can't pickle .mmap objects    
+        out = self
+        out.mmap = []
+        for k, v in out.trans.items():
+            out.trans[k].mmap = []
+
+            for ti in range(len(out.trans[k].txIn)):
+                out.trans[k].txIn[ti].mmap = []
+            for to in range(len(out.trans[k].txIn)):
+                out.trans[k].txOut[to].mmap = []
+        
+        p = open(fn, 'wb')
+        pickle.dump(out, p)
+        
     def _print(self):
 
         if self.verb >= 3:

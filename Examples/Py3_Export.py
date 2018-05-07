@@ -8,6 +8,8 @@ Save block and transaction data to pandas (in memory)
 import pandas as pd
 import matplotlib.pyplot as plt
 
+import pickle
+
 from py3.Chain import Dat
 
 
@@ -146,3 +148,29 @@ def to_csv(blocks,
     
     
 to_csv(datBlocks)
+
+
+# %% To pic
+
+def to_pic(block, 
+           fn='test.pic'):
+
+    """
+    Serialise object to pickle object
+    """
+    
+    # Can't pickle .mmap objects    
+    block.mmap = []
+    for k, v in block.trans.items():
+        block.trans[k].mmap = []
+        
+        for ti in range(len(block.trans[k].txIn)):
+            block.trans[k].txIn[ti].mmap = []
+        for to in range(len(block.trans[k].txIn)):
+            block.trans[k].txOut[to].mmap = []
+    
+    p = open(fn, 'wb')
+    pickle.dump(block, p)
+    
+to_pic(block)
+
