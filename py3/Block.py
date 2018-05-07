@@ -32,7 +32,8 @@ class Block(Common, API, Export):
     def __init__(self, mmap, cursor,
                  verb=3,
                  f=None,
-                 validateTrans=True):
+                 validateTrans=True,
+                 **kwargs):
 
         # Increment block counter and remember which one this is
         Block._index += 1
@@ -45,7 +46,7 @@ class Block(Common, API, Export):
         self.verb = verb
         self.f = f
         self.validateTrans = validateTrans
-
+        
     def read_block(self):
         # Read header
         self.read_header()
@@ -133,7 +134,8 @@ class Block(Common, API, Export):
         Variable length
         Convert to int
         """
-        return ord(self._nTransactions)
+        return int(codecs.encode(self._nTransactions[::-1], "hex"), 16)
+        # return ord(self._nTransactions)
 
     @property
     def _hash(self):
@@ -343,8 +345,9 @@ class Block(Common, API, Export):
     def _print(self):
 
         if self.verb >= 3:
-            print("{0}{1}Read block{1}".format(3*" "*2,
-                                               "*"*10))
+            print("{0}{1}Read block {2}{1}".format(3*" "*2,
+                                                   "*"*10,
+                                                   self.index))
             print("{0}Beginning at: {1}".format(3*" "*2,
                                                 self.start))
             print("{0}magic: {1}".format(3*" "*2,
@@ -747,7 +750,7 @@ class TxOut(Common, Export):
         else:
             addr = None
 
-        return addr.decode()
+        return addr
 
     @staticmethod
     def split_script(pk_op):

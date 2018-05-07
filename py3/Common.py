@@ -84,6 +84,7 @@ class Common():
             # Reverse endedness
             # Convert to int in base 16
             out = self.read_next(2)
+            
         elif o == 254:  # 0xfe
             # Read next 4 bytes, convert as above
             out = self.read_next(4)

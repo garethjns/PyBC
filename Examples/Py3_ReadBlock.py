@@ -128,7 +128,8 @@ def read_header(m, cursor,
         print('magic: {0}'.format(magic))
 
     # Read block size: 4 bytes
-    blockSize = read_next(m, cursor, 4, rev=True)
+    blockSize = read_next(m, cursor, 4, 
+                          rev=True)
     blockSize = int(blockSize, 16)
     cursor += 4
     if pr:
@@ -141,7 +142,8 @@ def read_header(m, cursor,
         print('version: {0}'.format(version))
 
     # Read the previous hash: 32 bytes
-    prevHash = read_next(m, cursor, 32, rev=True)
+    prevHash = read_next(m, cursor, 32, 
+                         rev=True)
     cursor += 32
     if pr:
         print('prevHash: {0}'.format(prevHash))
@@ -153,7 +155,8 @@ def read_header(m, cursor,
         print('merkle_root: {0}'.format(merkleRootHash))
 
     # Read the time stamp: 32 bytes
-    timestamp = read_next(m, cursor, 4, rev=True)
+    timestamp = read_next(m, cursor, 4, 
+                          rev=True)
     cursor += 4
     if pr:
         print('timestamp: {0}'.format(timestamp))
@@ -299,107 +302,110 @@ def read_trans(m, cursor,
     return cursor
 
 
-# %% Load .dat
-
-f = 'Blocks/blk00000.dat'
-blk = open(f, 'rb')
-m = mmap.mmap(blk.fileno(), 0,
-              access=mmap.ACCESS_READ)
-
-
-# %% First block
-
-block = 0
-cursor = 0
-print("\n\nBlock {0}".format(block))
-cursor, nTransactions = read_header(m, cursor)
-for t in range(nTransactions):
-    print("\nTRANSACTION {0}/{1}".format(t+1, nTransactions))
-    cursor = read_trans(m, cursor)
-
-print("\nExpected {0}, and read {1} transactions read from block 1".format(
-        nTransactions, t+1))
-
-
-# %% Second block
-# Cursor position and block count continue from cell above
-
-block += 1
-print("\n\nBlock {0}".format(block))
-cursor, nTransactions = read_header(m, cursor)
-for t in range(nTransactions):
-    print("\nTRANSACTION {0}/{1}".format(t+1, nTransactions))
-    cursor = read_trans(m, cursor)
-
-print("\nExpected {0}, and read {1} transactions read from block 2".format(
-        nTransactions, t+1))
-
-
-# %% All blocks in .dat
-# Cursor position and block count reset here
-# Continue collecting blocks until the end of the .dat is reached (len(m))
-
-# This currentely fails on 'Blocks/blk00000.dat' at
-# read_var(m, 26090097, pr=True) (=255). The next 8 bytes read return an
-# invalid number of ouputs. This should be read as a CVarInt?
-
-# Print block and transaction details - much slower!
-printHere = False
-f = 'Blocks/blk00001.dat'
-blk = open(f, 'rb')
-m = mmap.mmap(blk.fileno(), 0,
-              access=mmap.ACCESS_READ)
-
-block = 0
-totalTrans = 0
-cursor = 0
-while cursor < len(m):
-    cursor, nTransactions = read_header(m, cursor,
-                                        pr=printHere)
-    block += 1
-    print("\nReading block {0}/?".format(block))
-    for t in range(nTransactions):
-        # print "  TRANSACTION {0}/{1}".format(t+1, nTransactions)
-        cursor = read_trans(m, cursor,
-                            pr=printHere)
-        totalTrans += 1
-    print("  Transactions read: {0}/{1}".format(t+1, nTransactions))
-
-print("\nRead {0} transactions read from {1} blocks".format(
-                            totalTrans, block))
-
-
-# %% All (3) .dats
-# Parse all available .dat files. This probably won't get past the first .dat
-# at the moment for the reasons above.
-
-tRead = 0
-bRead = 0
-dRead = 0
-for dat in range(3):
-
-    f = "Blocks/blk{0:05d}.dat".format(dat)
+if __name__ == "__main__":
+    ""
+    
+    # %% Load .dat
+    
+    f = 'Blocks/blk00000.dat'
     blk = open(f, 'rb')
     m = mmap.mmap(blk.fileno(), 0,
                   access=mmap.ACCESS_READ)
-
-    print("\nReading {0} {1}/3".format(f, dat))
-
+    
+    
+    # %% First block
+    
     block = 0
     cursor = 0
-    more = True
+    print("\n\nBlock {0}".format(block))
+    cursor, nTransactions = read_header(m, cursor)
+    for t in range(nTransactions):
+        print("\nTRANSACTION {0}/{1}".format(t+1, nTransactions))
+        cursor = read_trans(m, cursor)
+    
+    print("\nExpected {0}, and read {1} transactions read from block 1".format(
+            nTransactions, t+1))
+    
+    
+    # %% Second block
+    # Cursor position and block count continue from cell above
+    
+    block += 1
+    print("\n\nBlock {0}".format(block))
+    cursor, nTransactions = read_header(m, cursor)
+    for t in range(nTransactions):
+        print("\nTRANSACTION {0}/{1}".format(t+1, nTransactions))
+        cursor = read_trans(m, cursor)
+    
+    print("\nExpected {0}, and read {1} transactions read from block 2".format(
+            nTransactions, t+1))
+    
+    
+    # %% All blocks in .dat
+    # Cursor position and block count reset here
+    # Continue collecting blocks until the end of the .dat is reached (len(m))
+    
+    # This currentely fails on 'Blocks/blk00000.dat' at
+    # read_var(m, 26090097, pr=True) (=255). The next 8 bytes read return an
+    # invalid number of ouputs. This should be read as a CVarInt?
+    
+    # Print block and transaction details - much slower!
+    printHere = False
+    f = 'Blocks/blk00001.dat'
+    blk = open(f, 'rb')
+    m = mmap.mmap(blk.fileno(), 0,
+                  access=mmap.ACCESS_READ)
+    
+    block = 0
+    totalTrans = 0
+    cursor = 0
     while cursor < len(m):
-        print("    Reading block {0}/?".format(bRead))
         cursor, nTransactions = read_header(m, cursor,
-                                            pr=False)
-        bRead += 1
-
+                                            pr=printHere)
+        block += 1
+        print("\nReading block {0}/?".format(block))
         for t in range(nTransactions):
+            # print "  TRANSACTION {0}/{1}".format(t+1, nTransactions)
             cursor = read_trans(m, cursor,
-                                pr=False)
-
-            tRead += 1
-        print("        Transactions read: {0}/{1}".format(t+1, nTransactions))
-
-print("\n\nRead {0} transactions from {1} blocks stored in {2} files".format(
-                                    tRead, bRead, dRead))
+                                pr=printHere)
+            totalTrans += 1
+        print("  Transactions read: {0}/{1}".format(t+1, nTransactions))
+    
+    print("\nRead {0} transactions read from {1} blocks".format(
+                                totalTrans, block))
+    
+    
+    # %% All (3) .dats
+    # Parse all available .dat files. This probably won't get past the first .dat
+    # at the moment for the reasons above.
+    
+    tRead = 0
+    bRead = 0
+    dRead = 0
+    for dat in range(3):
+    
+        f = "Blocks/blk{0:05d}.dat".format(dat)
+        blk = open(f, 'rb')
+        m = mmap.mmap(blk.fileno(), 0,
+                      access=mmap.ACCESS_READ)
+    
+        print("\nReading {0} {1}/3".format(f, dat))
+    
+        block = 0
+        cursor = 0
+        more = True
+        while cursor < len(m):
+            print("    Reading block {0}/?".format(bRead))
+            cursor, nTransactions = read_header(m, cursor,
+                                                pr=False)
+            bRead += 1
+    
+            for t in range(nTransactions):
+                cursor = read_trans(m, cursor,
+                                    pr=False)
+    
+                tRead += 1
+            print("        Transactions read: {0}/{1}".format(t+1, nTransactions))
+    
+    print("\n\nRead {0} transactions from {1} blocks stored in {2} files".format(
+                                        tRead, bRead, dRead))

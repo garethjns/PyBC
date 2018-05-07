@@ -28,7 +28,9 @@ class Chain(Common):
                  path='Blocks/',
                  datStart=0,
                  datn=10,
-                 verb=1):
+                 verb=1,
+                 **kwargs):
+        
         self.datStart = datStart
         self.datn = datn
         self.datEnd = datStart+datn
@@ -37,6 +39,8 @@ class Chain(Common):
         self.datni = -1
         self.dats = {}
         self.on = datStart
+        
+        self.kwargs = kwargs
 
     def read_next_Dat(self):
         """
@@ -55,7 +59,8 @@ class Chain(Common):
             print(f)
 
         dat = Dat(f,
-                  verb=self.verb)
+                  verb=self.verb,
+                  **self.kwargs)
         self.datni += 1
         return dat
 
@@ -133,7 +138,8 @@ class Dat(Common, Export):
             # Create Block object
             b = Block(self.mmap, self.cursor,
                       verb=self.verb,
-                      f=self.f)
+                      f=self.f,
+                      **self.kwargs)
 
             # Read it
             b.read_block()
@@ -298,9 +304,10 @@ if __name__ == "__main__":
 
     # %% Read chain - all (in range)
 
-    c = Chain(verb=6,
-              datStart=2,
-              datn=3)
+    c = Chain(verb=5,
+              datStart=0,
+              datn=2, 
+              validateBlocks=False)
     c.read_all()
 
     # %% Print example transaction
