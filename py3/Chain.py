@@ -1,14 +1,17 @@
 # -*- coding: utf-8 -*-
+"""
+Classes to handle Chain and acceess to .dat files. Also includes examples and
+quick tests
+"""
 
 # %% Imports
-
-from py3.Common import Common, Export
-from pyx.utils import tqdm_off
-from py3.Block import Block
-
 import mmap
 import pandas as pd
 import pickle
+
+from py3.Common import Common, Export
+from py3.Block import Block
+from pyx.utils import tqdm_off
 
 # Optional import for pretty waitbars
 try:
@@ -30,7 +33,7 @@ class Chain(Common):
                  datn=10,
                  verb=1,
                  **kwargs):
-        
+
         self.datStart = datStart
         self.datn = datn
         self.datEnd = datStart+datn
@@ -39,30 +42,30 @@ class Chain(Common):
         self.datni = -1
         self.dats = {}
         self.on = datStart
-        
-        self.kwargs = kwargs
+
+        self.dat_kwargs = kwargs
 
     def read_next_Dat(self):
         """
         Read next .dat, track progress. Can move past specified end.
         """
-        dat = self.readDat(datn=self.on)
-        dat.read_all()
+        d = self.readDat(datn=self.on)
+        d.read_all()
 
-        self.dats[self.on] = dat
+        self.dats[self.on] = d
         self.on += 1
 
     def readDat(self, datn):
-        f = "{0}blk{1:05d}.dat".format(self.datPath, datn)
+        fn = "{0}blk{1:05d}.dat".format(self.datPath, datn)
 
         if self.verb >= 1:
             print(f)
 
-        dat = Dat(f,
-                  verb=self.verb,
-                  **self.kwargs)
+        d = Dat(fn,
+                verb=self.verb,
+                **self.dat_kwargs)
         self.datni += 1
-        return dat
+        return d
 
     def read_all(self):
         """
@@ -98,34 +101,31 @@ class Dat(Common, Export):
 
     def __init__(self, f,
                  verb=2,
-                 validateBlocks=True):
+                 **kwargs):
 
         # Increment Dat counter and remember which one this is
         Dat._index += 1
         self.index = Dat._index
 
         self.f = f
-        self.reset()
+        self.mmap = None
+        self.prepare_mem()
         self.cursor = 0
         self.blocks = {}
         self.nBlock = -1
         self.verb = verb
-        self.validateBlocks = validateBlocks
+        self.block_kwargs = kwargs
+        self.validateBlocks = kwargs.get('validateBlocks', True)
 
-    def reset(self):
+    def prepare_mem(self):
         """
         Open file, map, reset cursor
-
         TODO:
             - Test this function, might need updating
         """
-        self.dat = open(self.f, 'rb')
-        self.mmap = mmap.mmap(self.dat.fileno(), 0,
+        fo = open(self.f, 'rb')
+        self.mmap = mmap.mmap(fo.fileno(), 0,
                               access=mmap.ACCESS_READ)
-
-        # Reset cursor and block count
-        self.cursor = 0
-        Block._index = -1
 
     def read_next_block(self,
                         n=1):
@@ -134,12 +134,12 @@ class Dat(Common, Export):
         Track cursor position
         """
 
-        for ni in range(n):
+        for _ in range(n):
             # Create Block object
             b = Block(self.mmap, self.cursor,
                       verb=self.verb,
                       f=self.f,
-                      **self.kwargs)
+                      **self.block_kwargs)
 
             # Read it
             b.read_block()
@@ -176,82 +176,81 @@ class Dat(Common, Export):
         Output all loaded blocks to pandas df. Not particularly efficient.
         """
         df = pd.DataFrame()
-        
+
         # For each loaded block
-        for k, v in self.blocks.items():
-            # Get padnas row for block 
+        for v in self.blocks.values():
+            # Get padnas row for block
             b = v.to_pandas()
-            
+
             # Concat to data frame
             df = pd.concat((df, b),
                            axis=0)
 
         return df
-    
+
     def trans_to_pandas_(self):
         """
         Output all loaded trans to pandas df. Not particularly efficient.
         Abridged version
         """
-        
+
         df = pd.DataFrame()
-        
+
         # For each block
-        for k, v in self.blocks.items():
+        for v in self.blocks.values():
             # Get padnas rows for block transactions
             ts = v.trans_to_pandas_()
-            
+
             # Concat to data frame
             df = pd.concat((df, ts),
                            axis=0)
-    
+
         return df
-    
+
     def trans_to_pandas(self):
         """
         Output all loaded trans to pandas df. Not particularly efficient.
         """
         df = pd.DataFrame()
-        
-        for k, v in self.blocks.items():
+
+        for v in self.blocks.values():
             # Get padnas rows for block transactions
             b = v.trans_to_pandas()
-            
+
             # Concat to data frame
             df = pd.concat((df, b),
                            axis=0)
-            
+
         return df
 
-    def to_pic(self, 
-           fn='test.pic'):
+    def to_pic(self,
+               fn='test.pic'):
 
         """
         Serialise object to pickle object
         (Not working)
         """
-        
-        # Can't pickle .mmap objects 
+
+        # Can't pickle .mmap objects
         out = self
-        out.dat = []
         out.mmap = []
-        for bk, bv in out.blocks.items():
+        for bk in out.blocks.keys():
             # From block
             out.blocks[bk].mmap = []
-            for tk, tv in out.blocks[bk].trans.items():
+            for tk in out.blocks[bk].trans.keys():
                 # From transaction
                 out.blocks[bk].trans[tk].mmap = []
-                
+
                 for ti in range(len(out.blocks[bk].trans[tk].txIn)):
                     # From TxIns
                     out.blocks[bk].trans[tk].txIn[ti].mmap = []
                 for to in range(len(out.blocks[bk].trans[tk].txIn)):
                     # From TxOuts
                     out.blocks[bk].trans[tk].txOut[to].mmap = []
-        
+
         p = open(fn, 'wb')
         pickle.dump(out, p)
-        
+
 
 if __name__ == "__main__":
     """
@@ -271,19 +270,19 @@ if __name__ == "__main__":
 
     # Verify it's correct (this may already have been done on import)
     dat.blocks[0].api_verify()
-    
+
     # Output block data as dict
     dat.blocks[0].to_dict()
-    
+
     # %% Read another 10 blocks and export
-    
+
     # Read block
     dat.read_next_block(100)
 
     # Export to pandas df
     blockTable = dat.blocks_to_pandas()
     blockTable.head()
-    
+
     # %% Print example transaction
 
     dat.blocks[0].trans[0]._print()
@@ -296,7 +295,7 @@ if __name__ == "__main__":
 
     transTable = dat.trans_to_pandas()
     transTable.head()
-    
+
     # %% Read chain - 1 step
 
     c = Chain(verb=4)
@@ -304,9 +303,9 @@ if __name__ == "__main__":
 
     # %% Read chain - all (in range)
 
-    c = Chain(verb=5,
+    c = Chain(verb=3,
               datStart=0,
-              datn=2, 
+              datn=2,
               validateBlocks=False)
     c.read_all()
 

@@ -32,12 +32,14 @@ class Block(Common, API, Export):
     def __init__(self, mmap, cursor,
                  verb=3,
                  f=None,
-                 validateTrans=True,
-                 **kwargs):
+                 **trans_kwargs):
 
         # Increment block counter and remember which one this is
         Block._index += 1
         self.index = Block._index
+
+        # Hold keyword args for lower lebels
+        self.trans_kwargs = trans_kwargs
 
         # Starting from the given cursor position, read block
         self.start = cursor
@@ -45,8 +47,21 @@ class Block(Common, API, Export):
         self.mmap = mmap
         self.verb = verb
         self.f = f
-        self.validateTrans = validateTrans
+        self.validateTrans = self.trans_kwargs.get('validateTrans', True)
         
+        # Prepare remaning attributes
+        self.end = None
+        self._magic = None
+        self._BlockSize = None
+        self._version = None
+        self._prevHash = None
+        self._merkleRootHash = None
+        self._timestamp = None
+        self._nBits = None
+        self._nonce = None
+        self._nTransactions = None
+        self.trans = {}
+
     def read_block(self):
         # Read header
         self.read_header()
@@ -127,7 +142,7 @@ class Block(Common, API, Export):
         Reverse, convert to hex, convert to int from base 16
         """
         return int(codecs.encode(self._nonce[::-1], "hex"), 16)
-    
+
     @property
     def nTransactions(self):
         """
@@ -199,7 +214,7 @@ class Block(Common, API, Export):
 
         # Read the number of transactions: VarInt 1-9 bytes
         self._nTransactions = self.read_var()
-        
+
         # Print (depends on verbosity)
         self._print()
 
@@ -212,7 +227,8 @@ class Block(Common, API, Export):
 
             # Make transaction objects (and table later?)
             trans = Trans(self.mmap, self.cursor,
-                          verb=self.verb)
+                          verb=self.verb,
+                          **self.trans_kwargs)
 
             # Read the transaction
             trans.get_transaction()
@@ -248,12 +264,12 @@ class Block(Common, API, Export):
         """
 
         df = pd.DataFrame()
-        for k, v in self.trans.items():
+        for v in self.trans.values():
             # Use the Export.to_pandas method
             t = v.to_pandas()
             df = pd.concat((df, t),
                            axis=0)
-    
+
         return df
 
     def trans_to_pandas(self):
@@ -262,12 +278,12 @@ class Block(Common, API, Export):
         """
 
         df = pd.DataFrame()
-        for k, v in self.trans.items():
+        for v in self.trans.values():
             # Use the full to pandas method
             t = v.to_pandas_full()
             df = pd.concat((df, t),
                            axis=0)
-    
+
         return df
 
     def trans_to_csv(self,
@@ -276,7 +292,7 @@ class Block(Common, API, Export):
         Output entire transaction to table
         """
         self.trans_to_pandas().to_csv(fn)
-        
+
     def api_verify(self,
                    url="https://blockchain.info/rawblock/",
                    wait=False):
@@ -296,18 +312,18 @@ class Block(Common, API, Export):
                                                "_"*10))
 
         jr = self.api_get(url=url,
-                          wait=False)
+                          wait=wait)
 
         if jr is not None:
             # Use these fields for validation
             validationFields = {
-                    self.hash: jr['hash'],
-                    self.blockSize: jr['size'],
-                    self.merkleRootHash: jr['mrkl_root'],
-                    self.nTransactions: jr['n_tx'],
-                    self.prevHash: jr['prev_block'],
-                    self.nonce: jr['nonce'],
-                    self.timestamp: jr['time']
+                self.hash: jr['hash'],
+                self.blockSize: jr['size'],
+                self.merkleRootHash: jr['mrkl_root'],
+                self.nTransactions: jr['n_tx'],
+                self.prevHash: jr['prev_block'],
+                self.nonce: jr['nonce'],
+                self.timestamp: jr['time']
                                 }
 
             self.api_validated = self.api_check(jr, validationFields)
@@ -320,28 +336,28 @@ class Block(Common, API, Export):
                                             " "*3,
                                             self.api_validated,
                                             "_"*30))
-    
+
     def to_pic(self,
            fn='test.pic'):
 
         """
         Serialise object to pickle object
         """
-        
-        # Can't pickle .mmap objects    
+
+        # Can't pickle .mmap objects
         out = self
         out.mmap = []
-        for k, v in out.trans.items():
+        for k in out.trans.keys():
             out.trans[k].mmap = []
 
             for ti in range(len(out.trans[k].txIn)):
                 out.trans[k].txIn[ti].mmap = []
             for to in range(len(out.trans[k].txIn)):
                 out.trans[k].txOut[to].mmap = []
-        
+
         p = open(fn, 'wb')
         pickle.dump(out, p)
-        
+
     def _print(self):
 
         if self.verb >= 3:
@@ -380,24 +396,33 @@ class Trans(Common, API, Export):
     .name is a get method which converts the ._name into a more readable/useful
      format.
     """
-    
+
     # Object counter
     _index = -1
-    
+
     def __init__(self, mmap, cursor,
                  verb=4,
                  f=None):
 
-    
         # Increment block counter and remember which one this is
         Trans._index += 1
         self.index = Trans._index
-        
+
         self.start = cursor
         self.cursor = cursor
         self.mmap = mmap
         self.verb = verb
         self.f = f
+        
+        # Prepare other attributes
+        self.api_validated = None
+        self._version = None
+        self._nInputs = None
+        self.txIn = {}
+        self._nOutputs = None
+        self.txOut = {}
+        self._lockTime = None
+        self.end = None
 
     @property
     def version(self):
@@ -449,7 +474,7 @@ class Trans(Common, API, Export):
 
         # Read the inputs (variable bytes)
         self.txIn = []
-        for inp in range(self.nInputs):
+        for _ in range(self.nInputs):
             # Create the TxIn object
             txIn = TxIn(self.mmap, self.cursor,
                         verb=self.verb)
@@ -468,7 +493,7 @@ class Trans(Common, API, Export):
 
         # Read the outputs (varible bytes)
         self.txOut = []
-        for oup in range(self.nOutputs):
+        for _ in range(self.nOutputs):
             # Create TxOut object
             txOut = TxOut(self.mmap, self.cursor,
                           verb=self.verb)
@@ -490,44 +515,44 @@ class Trans(Common, API, Export):
 
         # Print (depends on verbosity)
         self._print()
-        
+
     def to_dict_full(self):
         """
-        Convert transaction to dict, get (for now) first input and first output 
+        Convert transaction to dict, get (for now) first input and first output
         only
-        
+
         Combines transction meta data and TxIn and TxOut
         """
-    
+
         # Convert transction to dict
-        tr = self.to_dict(keys=['hash', 'version', 
-                                'nInputs', 'nOutputs', 
+        tr = self.to_dict(keys=['hash', 'version',
+                                'nInputs', 'nOutputs',
                                 'lockTime'])
-    
+
         # Convert first txIn to dict
-        txI = self.txIn[0].to_dict(keys=['prevOutput', 'prevIndex', 
-                                          'scriptLength', 'sequence', 
+        txI = self.txIn[0].to_dict(keys=['prevOutput', 'prevIndex',
+                                          'scriptLength', 'sequence',
                                           'scriptSig'])
-    
+
         # Convert first txOut to dict
-        txO = self.txOut[0].to_dict(keys=['value', 'pkScriptLen', 
+        txO = self.txOut[0].to_dict(keys=['value', 'pkScriptLen',
                                           'pkScript', 'outputAddr'])
-    
+
         # Combine in to single dict
         tr.update(txI)
         tr.update(txO)
-    
+
         return tr
-    
+
     def to_pandas_full(self):
         """
         Output entire transaction to table
         """
         tr = self.to_dict_full()
-        
+
         return pd.DataFrame(tr,
                             index=[self.index])
-        
+
 
     def api_verify(self,
                    url="https://blockchain.info/rawtx/",
@@ -548,15 +573,15 @@ class Trans(Common, API, Export):
                                                "_"*10))
 
         jr = self.api_get(url=url,
-                          wait=False)
+                          wait=wait)
 
         if jr is not None:
             # Use these fields for validation
             validationFields = {
-                    self.txIn[0].scriptSig: jr['inputs'][0]['script'],
-                    self.txOut[0].pkScript: jr['out'][0]['script'],
-                    self.txOut[0].outputAddr: jr['out'][0]['addr']
-                                }
+                self.txIn[0].scriptSig: jr['inputs'][0]['script'],
+                self.txOut[0].pkScript: jr['out'][0]['script'],
+                self.txOut[0].outputAddr: jr['out'][0]['addr']}
+
             self.api_validated = self.api_check(jr, validationFields)
         else:
             self.api_validated = 'Skipped'
@@ -625,6 +650,13 @@ class TxIn(Common, Export):
         self.verb = verb
         self.mmap = mmap
         self.cursor = cursor
+        
+        # Prepare other attributes
+        self._sequence = None
+        self._scriptSig = None
+        self._scriptLength = None
+        self._prevIndex = None
+        self._prevOutput = None
 
     @property
     def prevOutput(self):
@@ -707,6 +739,12 @@ class TxOut(Common, Export):
         self.mmap = mmap
         self.cursor = cursor
 
+        # Prepare other attributes
+        self.end = None
+        self._pkScript = None
+        self._pkScriptLen = None
+        self._value = None
+        
     @property
     def value(self):
         """
@@ -731,7 +769,7 @@ class TxOut(Common, Export):
 
     @property
     def parsed_pkScript(self):
-          return TxOut.split_script(self.pkScript)
+        return TxOut.split_script(self.pkScript)
 
     @property
     def outputAddr(self):
@@ -784,9 +822,9 @@ class TxOut(Common, Export):
                 script += [OP_CODES.get(op, op)]
 
         return script
-    
+
     @staticmethod
-    def P2PKH(pk, 
+    def P2PKH(pk,
               debug=False):
         """
         pk = public key in hex
@@ -812,7 +850,7 @@ class TxOut(Common, Export):
             print("{0}b58: {1}".format(" "*6, b58))
 
         return b58
-    
+
     def get_P2PKH(self):
         """
         Get script, extract public key, convert to address
@@ -824,7 +862,7 @@ class TxOut(Common, Export):
         b58 = TxOut.P2PKH(pk)
 
         return b58
-    
+
     @staticmethod
     def PK2Addr(pk,
                 debug=False):
@@ -865,7 +903,7 @@ class TxOut(Common, Export):
             print("{0}b58: {1}".format(" "*6, b58))
 
         return b58
-    
+
     def get_PK2Addr(self):
         """
         Get script, extract public key, convert to address
@@ -875,9 +913,9 @@ class TxOut(Common, Export):
         pk = script[script.index("PUSH_BYTES")+2]
 
         b58 = self.PK2Addr(pk)
-        
+
         return b58
-        
+
     def read_out(self):
         # TxOut:
         # Read value in Satoshis: 8 bytes
