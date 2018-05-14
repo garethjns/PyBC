@@ -33,7 +33,7 @@ class Block(Common, API, Export):
     def __init__(self, mmap: mmap.mmap, cursor: int,
                  verb: int=3,
                  f: str=None,
-                 **trans_kwargs):
+                 **trans_kwargs) -> None:
 
         # Increment block counter and remember which one this is
         Block._index += 1
@@ -63,27 +63,58 @@ class Block(Common, API, Export):
         self._nTransactions = None
         self.trans = {}
 
+    def __repr__(self) -> str:
+        h = getattr(self, 'hash', "No hash")
+        t = getattr(self, 'time', "No time")
+
+        return "Block: {0} {1}".format(h, t)
+
+    def __str__(self) -> str:
+        s = "{0}{1}Read block {2}{1}\n".format(3*" "*2, "*"*10, self.index)\
+            + "{0}Beginning at: {1}\n".format(3*" "*2, self.start)\
+            + "{0}magic: {1}\n".format(3*" "*2, self.magic)\
+            + "{0}block_size: {1}\n".format(3*" "*2, self.blockSize)\
+            + "{0}version: {1}\n".format(3*" "*2, self.version)\
+            + "{0}prevHash: {1}\n".format(3*" "*2, self.prevHash)\
+            + "{0}merkle_root: {1}\n".format(3*" "*2, self.merkleRootHash)\
+            + "{0}timestamp: {1}: {2}\n".format(3*" "*2,
+                                                self.timestamp,
+                                                self.time)\
+            + "{0}nBits: {1}\n".format(3*" "*2, self.nBits)\
+            + "{0}nonce: {1}\n".format(3*" "*2, self.nonce)\
+            + "{0}n transactions: {1}\n".format(3*" "*2, self.nTransactions)
+
+        return s
+
+    def __print__(self,
+                  force: bool=True) -> None:
+        """
+        Print the block details, for force is on ignore verbosity setting
+        """
+        if force or self.verb >= 3:
+            print(self.__str__)
+
     @classmethod
     def genesis(self) -> bytes:
         """
         Return genesis block bytes
         """
         gen = b"\xf9\xbe\xb4\xd9\x1d\x01\x00\x00\x01\x00\x00\x00"\
-         + b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"\
-         + b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"\
-         + b"\x00\x00\x00\x00\x00\x00\x00\x00;\xa3\xed\xfdz{\x12"\
-         + b"\xb2z\xc7,>gv\x8fa\x7f\xc8\x1b\xc3\x88\x8aQ2:\x9f"\
-         + b"\xb8\xaaK\x1e^J)\xab_I\xff\xff\x00\x1d\x1d\xac+|\x01"\
-         + b"\x01\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00\x00"\
-         + b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"\
-         + b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xff\xff"\
-         + b"\xff\xffM\x04\xff\xff\x00\x1d\x01\x04EThe Times 03/Jan/2009 "\
-         + b"Chancellor on brink of second bailout for banks\xff\xff"\
-         + b"\xff\xff\x01\x00\xf2\x05*\x01\x00\x00\x00CA\x04g\x8a"\
-         + b"\xfd\xb0\xfeUH'\x19g\xf1\xa6q0\xb7\x10\\\xd6\xa8(\xe09\t"\
-         + b"\xa6yb\xe0\xea\x1fa\xde\xb6I\xf6\xbc?L\xef8\xc4\xf3U\x04"\
-         + b"\xe5\x1e\xc1\x12\xde\\8M\xf7\xba\x0b\x8dW\x8aLp+k\xf1\x1d_"\
-         + b"\xac\x00\x00\x00\x00"
+            b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"\
+            b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"\
+            b"\x00\x00\x00\x00\x00\x00\x00\x00;\xa3\xed\xfdz{\x12"\
+            b"\xb2z\xc7,>gv\x8fa\x7f\xc8\x1b\xc3\x88\x8aQ2:\x9f"\
+            b"\xb8\xaaK\x1e^J)\xab_I\xff\xff\x00\x1d\x1d\xac+|\x01"\
+            b"\x01\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00\x00"\
+            b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"\
+            b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xff\xff"\
+            b"\xff\xffM\x04\xff\xff\x00\x1d\x01\x04EThe Times 03/Jan/2009 "\
+            b"Chancellor on brink of second bailout for banks\xff\xff"\
+            b"\xff\xff\x01\x00\xf2\x05*\x01\x00\x00\x00CA\x04g\x8a"\
+            b"\xfd\xb0\xfeUH'\x19g\xf1\xa6q0\xb7\x10\\\xd6\xa8(\xe09\t"\
+            b"\xa6yb\xe0\xea\x1fa\xde\xb6I\xf6\xbc?L\xef8\xc4\xf3U\x04"\
+            b"\xe5\x1e\xc1\x12\xde\\8M\xf7\xba\x0b\x8dW\x8aLp+k\xf1\x1d_"\
+            b"\xac\x00\x00\x00\x00"
 
         return gen
 
@@ -227,7 +258,7 @@ class Block(Common, API, Export):
         self._nTransactions = self.read_var()
 
         # Print (depends on verbosity)
-        self._print()
+        print(self)
 
     def read_trans(self) -> None:
         """
@@ -311,7 +342,7 @@ class Block(Common, API, Export):
         Query a block hash from Blockchain.info's api. Check it matches the
         blockon size, merkle root, number of transactions, previous block hash
 
-        Respects apis request limting queries to 1 every 10s. If wait is True,
+        Respects APIs request limting queries to 1 every 10s. If wait is True,
         waits to query. If false, skips.
 
         TODO:
@@ -334,8 +365,7 @@ class Block(Common, API, Export):
                 self.nTransactions: jr['n_tx'],
                 self.prevHash: jr['prev_block'],
                 self.nonce: jr['nonce'],
-                self.timestamp: jr['time']
-                                }
+                self.timestamp: jr['time']}
 
             self.api_validated = self.api_check(jr, validationFields)
         else:
@@ -368,34 +398,6 @@ class Block(Common, API, Export):
 
         p = open(fn, 'wb')
         pickle.dump(out, p)
-
-    def _print(self) -> None:
-
-        if self.verb >= 3:
-            print("{0}{1}Read block {2}{1}".format(3*" "*2,
-                                                   "*"*10,
-                                                   self.index))
-            print("{0}Beginning at: {1}".format(3*" "*2,
-                                                self.start))
-            print("{0}magic: {1}".format(3*" "*2,
-                                         self.magic))
-            print("{0}block_size: {1}".format(3*" "*2,
-                                              self.blockSize))
-            print("{0}version: {1}".format(3*" "*2,
-                                           self.version))
-            print("{0}prevHash: {1}".format(3*" "*2,
-                                            self.prevHash))
-            print("{0}merkle_root: {1}".format(3*" "*2,
-                                               self.merkleRootHash))
-            print("{0}timestamp: {1}: {2}".format(3*" "*2,
-                                                  self.timestamp,
-                                                  self.time))
-            print("{0}nBits: {1}".format(3*" "*2,
-                                         self.nBits))
-            print("{0}nonce: {1}".format(3*" "*2,
-                                         self.nonce))
-            print("{0}n transactions: {1}".format(3*" "*2,
-                                                  self.nTransactions))
 
 
 class Trans(Common, API, Export):
@@ -434,6 +436,36 @@ class Trans(Common, API, Export):
         self.txOut = {}
         self._lockTime = None
         self.end = None
+
+    def __repr__(self):
+        h = getattr(self, 'hash', "No hash")
+
+        return "Trans: {0} {1}".format(h)
+
+    def __str__(self):
+        s = "{0}{1}Read transaction{1}\n".format(4*" "*2, "*"*10)\
+            + "{0}Beginning at: {1}\n".format(4*" "*2, self.start)\
+            + "{0}Ending at: {1}\n".format(4*" "*2, self.end)\
+            + "{0}Transaction version: {1}\n".format(4*" "*2, self.version)\
+            + "{0}nInputs: {1}\n".format(4*" "*2, self.nInputs)\
+            + "{0}nOutputs: {1}\n".format(4*" "*2, self.nOutputs)\
+            + "{0}lock time: {1}\n".format(4*" "*2, self.lockTime)
+
+        return s
+
+    def __print__(self):
+        if self.verb >= 4:
+
+            # Print header
+            print(self.__str__)
+
+            # Print inputs
+            for inp in self.txIn:
+                print(inp)
+
+            # Print outputs
+            for oup in self.txOut:
+                print(oup)
 
     @property
     def version(self) -> str:
@@ -513,7 +545,7 @@ class Trans(Common, API, Export):
         self.end = self.cursor
 
         # Print (depends on verbosity)
-        self._print()
+        print(self)
 
     def to_dict_full(self) -> dict:
         """
@@ -578,7 +610,7 @@ class Trans(Common, API, Export):
             validationFields = {
                 self.txIn[0].scriptSig: jr['inputs'][0]['script'],
                 self.txOut[0].pkScript: jr['out'][0]['script'],
-                self.txOut[0].outputAddr: jr['out'][0]['addr']}
+                self.txOut[0].outputAddr: bytes(jr['out'][0]['addr'], 'utf-8')}
 
             self.api_validated = self.api_check(jr, validationFields)
         else:
@@ -607,32 +639,6 @@ class Trans(Common, API, Export):
 
         return header
 
-    def _print(self):
-        if self.verb >= 4:
-            print("{0}{1}Read transaction{1}".format(4*" "*2,
-                                                     "*"*10))
-            print("{0}Beginning at: {1}".format(4*" "*2,
-                                                self.start))
-            print("{0}Ending at: {1}".format(4*" "*2,
-                                             self.end))
-            print("{0}Transaction version: {1}".format(4*" "*2,
-                                                       self.version))
-            print("{0}nInputs: {1}".format(4*" "*2,
-                                           self.nInputs))
-            # Print inputs
-            for inp in self.txIn:
-                inp._print()
-            print("{0}nOutputs: {1}".format(4*" "*2,
-                                            self.nOutputs))
-            # Print outputs
-            for oup in self.txOut:
-                oup._print()
-            print("{0}lock time: {1}".format(4*" "*2,
-                                             self.lockTime))
-
-            print("{0}{1}Transaction ends{1}".format(4*" "*2,
-                                                     "*"*10))
-
 
 class TxIn(Common, Export):
     def __init__(self, mmap, cursor,
@@ -655,6 +661,20 @@ class TxIn(Common, Export):
         self._scriptLength = None
         self._prevIndex = None
         self._prevOutput = None
+
+    def __str__(self) -> str:
+        s = "{0}Prev hash: {1}\n".format(5*" "*2, self.prevOutput)\
+            + "{0}Prev index: {1}\n".format(5*" "*2, self.prevIndex)\
+            + "{0}Script length: {1}\n".format(5*" "*2, self.scriptLength)\
+            + "{0}Script sig: {1}\n".format(5*" "*2, self.scriptSig)\
+            + "{0}Sequence: {1}\n".format(5*" "*2, self.sequence)
+
+        return s
+
+    def __print__(self) -> None:
+        if self.verb >= 5:
+            print("{0}Inputs".format(" "*self.verb*2))
+            print(self.__str__)
 
     @property
     def prevOutput(self) -> str:
@@ -708,19 +728,6 @@ class TxIn(Common, Export):
         # Read sequence: 4 bytes
         self._sequence = self.read_next(4)
 
-    def _print(self) -> None:
-        if self.verb >= 5:
-            print("{0}Prev hash: {1}".format(5*" "*2,
-                                             self.prevOutput))
-            print("{0}Prev index: {1}".format(5*" "*2,
-                                              self.prevIndex))
-            print("{0}Script length: {1}".format(5*" "*2,
-                                                 self.scriptLength))
-            print("{0}Script sig: {1}".format(5*" "*2,
-                                              self.scriptSig))
-            print("{0}Sequence: {1}".format(5*" "*2,
-                                            self.sequence))
-
 
 class TxOut(Common, Export):
     def __init__(self, mmap, cursor,
@@ -742,6 +749,18 @@ class TxOut(Common, Export):
         self._pkScript = None
         self._pkScriptLen = None
         self._value = None
+
+    def __str__(self) -> str:
+        s = "{0}BTC value: {1}\n".format(5*" "*2, self.value)\
+             + "{0}pk script length: {1}\n".format(5*" "*2, self.pkScriptLen)\
+             + "{0}pk script: {1}\n".format(5*" "*2, self.pkScript)
+
+        return s
+
+    def __print__(self) -> None:
+        if self.verb >= 5:
+            print("{0}Inputs".format(" "*self.verb*2))
+            print(self.__str__)
 
     @property
     def value(self) -> int:
@@ -927,12 +946,3 @@ class TxOut(Common, Export):
 
         # Record end of transaction for debugging
         self.end = self.cursor
-
-    def _print(self) -> None:
-        if self.verb >= 5:
-            print("{0}BTC value: {1}".format(5*" "*2,
-                                             self.value))
-            print("{0}pk script length: {1}".format(5*" "*2,
-                                                    self.pkScriptLen))
-            print("{0}pk script: {1}".format(5*" "*2,
-                                             self.pkScript))
