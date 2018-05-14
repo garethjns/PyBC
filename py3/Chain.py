@@ -24,75 +24,6 @@ except ImportError:
 
 # %% High level classes
 
-class Chain(Common):
-    """
-    Class to handle chain and loading from .dat files
-    """
-    def __init__(self,
-                 path: str='Blocks/',
-                 datStart: int=0,
-                 datn: int=10,
-                 verb: int=1,
-                 **kwargs) -> None:
-
-        self.datStart = datStart
-        self.datn = datn
-        self.datEnd = datStart+datn
-        self.datPath = path
-        self.verb = verb
-        self.datni = -1
-        self.dats = {}
-        self.on = datStart
-
-        self.dat_kwargs = kwargs
-
-    def read_next_Dat(self) -> None:
-        """
-        Read next .dat, track progress. Can move past specified end.
-        """
-        d = self.readDat(datn=self.on)
-        d.read_all()
-
-        self.dats[self.on] = d
-        self.on += 1
-
-    def readDat(self, datn: int) -> Dat:
-        fn = "{0}blk{1:05d}.dat".format(self.datPath, datn)
-
-        if self.verb >= 1:
-            print(f)
-
-        d = Dat(fn,
-                verb=self.verb,
-                **self.dat_kwargs)
-        self.datni += 1
-        return d
-
-    def read_all(self) -> None:
-        """
-        Read all blocks in .dat
-        Or in limited range specified by datStart -> datStart+datn
-        """
-        # If verb is low, use tqdm
-        if self.verb <= 1:
-            # Note if tqdm isn't available, it'll use the placeholder
-            # function which does nothing
-            tqdm_runner = tqdm
-        else:
-            tqdm_runner = tqdm_off
-
-        # Read requested range
-        for fi in tqdm_runner(range(self.datStart,
-                                    self.datStart+self.datn)):
-            d = self.readDat(datn=fi)
-            d.read_all()
-
-            # For now:
-            # Save dat contents to Chain (dats ordered, blocks not)
-            print(d)
-            self.dats[d.index] = d
-
-
 class Dat(Common, Export):
     """
     Class to represent .dat file on disk.
@@ -124,11 +55,13 @@ class Dat(Common, Export):
         TODO:
             - Test this function, might need updating
         """
-        fo = open(self.f, 'rb')
-        self.mmap = mmap.mmap(fo.fileno(), 0,
-                              access=mmap.ACCESS_READ)
+        with open(self.f, 'rb') as fo:
+            self.mmap = mmap.mmap(fo.fileno(), 0,
+                                  access=mmap.ACCESS_READ)
 
-        Dat._index = -1
+        # Reset cursor and block count
+        self.cursor = 0
+        Block._index = -1
 
     def read_next_block(self,
                         n: int=1) -> None:
@@ -253,6 +186,75 @@ class Dat(Common, Export):
 
         p = open(fn, 'wb')
         pickle.dump(out, p)
+
+
+class Chain(Common):
+    """
+    Class to handle chain and loading from .dat files
+    """
+    def __init__(self,
+                 path: str='Blocks/',
+                 datStart: int=0,
+                 datn: int=10,
+                 verb: int=1,
+                 **kwargs) -> None:
+
+        self.datStart = datStart
+        self.datn = datn
+        self.datEnd = datStart+datn
+        self.datPath = path
+        self.verb = verb
+        self.datni = -1
+        self.dats = {}
+        self.on = datStart
+
+        self.dat_kwargs = kwargs
+
+    def read_next_Dat(self) -> None:
+        """
+        Read next .dat, track progress. Can move past specified end.
+        """
+        d = self.readDat(datn=self.on)
+        d.read_all()
+
+        self.dats[self.on] = d
+        self.on += 1
+
+    def readDat(self, datn: int) -> Dat:
+        fn = "{0}blk{1:05d}.dat".format(self.datPath, datn)
+
+        if self.verb >= 1:
+            print(f)
+
+        d = Dat(fn,
+                verb=self.verb,
+                **self.dat_kwargs)
+        self.datni += 1
+        return d
+
+    def read_all(self) -> None:
+        """
+        Read all blocks in .dat
+        Or in limited range specified by datStart -> datStart+datn
+        """
+        # If verb is low, use tqdm
+        if self.verb <= 1:
+            # Note if tqdm isn't available, it'll use the placeholder
+            # function which does nothing
+            tqdm_runner = tqdm
+        else:
+            tqdm_runner = tqdm_off
+
+        # Read requested range
+        for fi in tqdm_runner(range(self.datStart,
+                                    self.datStart+self.datn)):
+            d = self.readDat(datn=fi)
+            d.read_all()
+
+            # For now:
+            # Save dat contents to Chain (dats ordered, blocks not)
+            print(d)
+            self.dats[d.index] = d
 
 
 if __name__ == "__main__":
