@@ -29,11 +29,11 @@ class Chain(Common):
     Class to handle chain and loading from .dat files
     """
     def __init__(self,
-                 path='Blocks/',
-                 datStart=0,
-                 datn=10,
-                 verb=1,
-                 **kwargs):
+                 path: str='Blocks/',
+                 datStart: int=0,
+                 datn: int=10,
+                 verb: int=1,
+                 **kwargs) -> None:
 
         self.datStart = datStart
         self.datn = datn
@@ -46,7 +46,7 @@ class Chain(Common):
 
         self.dat_kwargs = kwargs
 
-    def read_next_Dat(self):
+    def read_next_Dat(self) -> None:
         """
         Read next .dat, track progress. Can move past specified end.
         """
@@ -56,7 +56,7 @@ class Chain(Common):
         self.dats[self.on] = d
         self.on += 1
 
-    def readDat(self, datn):
+    def readDat(self, datn: int) -> Dat:
         fn = "{0}blk{1:05d}.dat".format(self.datPath, datn)
 
         if self.verb >= 1:
@@ -68,7 +68,7 @@ class Chain(Common):
         self.datni += 1
         return d
 
-    def read_all(self):
+    def read_all(self) -> None:
         """
         Read all blocks in .dat
         Or in limited range specified by datStart -> datStart+datn
@@ -100,9 +100,9 @@ class Dat(Common, Export):
     """
     _index = -1
 
-    def __init__(self, f,
-                 verb=2,
-                 **kwargs):
+    def __init__(self, f: str,
+                 verb: int=2,
+                 **kwargs) -> None:
 
         # Increment Dat counter and remember which one this is
         Dat._index += 1
@@ -118,7 +118,7 @@ class Dat(Common, Export):
         self.block_kwargs = kwargs
         self.validateBlocks = kwargs.get('validateBlocks', True)
 
-    def prepare_mem(self):
+    def prepare_mem(self) -> None:
         """
         Open file, map, reset cursor
         TODO:
@@ -128,8 +128,10 @@ class Dat(Common, Export):
         self.mmap = mmap.mmap(fo.fileno(), 0,
                               access=mmap.ACCESS_READ)
 
+        Dat._index = -1
+
     def read_next_block(self,
-                        n=1):
+                        n: int=1) -> None:
         """
         Read and return the next block
         Track cursor position
@@ -160,7 +162,7 @@ class Dat(Common, Export):
                 print("{0}Read block {1}".format(self.verb*" "*2,
                                                  self.nBlock))
 
-    def read_all(self):
+    def read_all(self) -> None:
         """
         Read all blocks in .dat
         """
@@ -172,7 +174,7 @@ class Dat(Common, Export):
         if self.verb >= 2:
             print("\nRead {0} blocks".format(nBlock))
 
-    def blocks_to_pandas(self):
+    def blocks_to_pandas(self) -> pd.DataFrame:
         """
         Output all loaded blocks to pandas df. Not particularly efficient.
         """
@@ -189,7 +191,7 @@ class Dat(Common, Export):
 
         return df
 
-    def trans_to_pandas_(self):
+    def trans_to_pandas_(self) -> pd.DataFrame:
         """
         Output all loaded trans to pandas df. Not particularly efficient.
         Abridged version
@@ -208,7 +210,7 @@ class Dat(Common, Export):
 
         return df
 
-    def trans_to_pandas(self):
+    def trans_to_pandas(self) -> None:
         """
         Output all loaded trans to pandas df. Not particularly efficient.
         """
@@ -225,7 +227,7 @@ class Dat(Common, Export):
         return df
 
     def to_pic(self,
-               fn='test.pic'):
+               fn: str='test.pic') -> None:
 
         """
         Serialise object to pickle object

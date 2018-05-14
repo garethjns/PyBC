@@ -5,14 +5,15 @@
 
 # %% Imports
 
-from datetime import datetime as dt
-from py3.Common import Common, API, Export
-from pyx.utils import OP_CODES, hash_SHA256_twice, hash_SHA256_ripemd160
-
 import codecs
 import base58
 import pandas as pd
 import pickle
+import mmap
+
+from datetime import datetime as dt
+from py3.Common import Common, API, Export
+from pyx.utils import OP_CODES, hash_SHA256_twice, hash_SHA256_ripemd160
 
 
 # %% Low level classes
@@ -29,9 +30,9 @@ class Block(Common, API, Export):
     # Count blocks that have been created
     _index = -1
 
-    def __init__(self, mmap, cursor,
-                 verb=3,
-                 f=None,
+    def __init__(self, mmap: mmap.mmap, cursor: int,
+                 verb: int=3,
+                 f: str=None,
                  **trans_kwargs):
 
         # Increment block counter and remember which one this is
@@ -48,7 +49,7 @@ class Block(Common, API, Export):
         self.verb = verb
         self.f = f
         self.validateTrans = self.trans_kwargs.get('validateTrans', True)
-        
+
         # Prepare remaning attributes
         self.end = None
         self._magic = None
@@ -63,7 +64,7 @@ class Block(Common, API, Export):
         self.trans = {}
 
     @classmethod
-    def genesis(self):
+    def genesis(self) -> bytes:
         """
         Return genesis block bytes
         """
@@ -85,8 +86,8 @@ class Block(Common, API, Export):
          + b"\xac\x00\x00\x00\x00"
 
         return gen
-    
-    def read_block(self):
+
+    def read_block(self) -> None:
         # Read header
         self.read_header()
 
@@ -105,70 +106,70 @@ class Block(Common, API, Export):
         self.verify()
 
     @property
-    def magic(self):
+    def magic(self) -> str:
         """
         Convert to hex, decode bytes to str
         """
         return codecs.encode(self._magic, "hex").decode()
 
     @property
-    def blockSize(self):
+    def blockSize(self) -> int:
         """
         Reverse endedness, convert to hex, convert to int from base 16
         """
         return int(codecs.encode(self._blockSize[::-1], "hex"), 16)
 
     @property
-    def version(self):
+    def version(self) -> str:
         """
         Convert to hex, decode bytes to str
         """
         return codecs.encode(self._version, "hex").decode()
 
     @property
-    def prevHash(self):
+    def prevHash(self) -> str:
         """
         Reverse, convert to hex, decode bytes to str
         """
         return codecs.encode(self._prevHash[::-1], "hex").decode()
 
     @property
-    def merkleRootHash(self):
+    def merkleRootHash(self) -> str:
         """
         Reverse, convert to hex, decode bytes to str
         """
         return codecs.encode(self._merkleRootHash[::-1], "hex").decode()
 
     @property
-    def timestamp(self):
+    def timestamp(self) -> int:
         """
         Reverse, convert to hex, convert to int from base 16
         """
         return int(codecs.encode(self._timestamp[::-1], "hex"), 16)
 
     @property
-    def time(self):
+    def time(self) -> dt:
         """
         Doesn't have _time equivilent, uses self._timestamp
         """
         return dt.fromtimestamp(self.timestamp)
 
     @property
-    def nBits(self):
+    def nBits(self) -> int:
         """
         Reverse , convert to hex, convert to int from base 16
         """
         return int(codecs.encode(self._nBits[::-1], "hex"), 16)
 
     @property
-    def nonce(self):
+    def nonce(self) -> int:
         """
         Reverse, convert to hex, convert to int from base 16
         """
         return int(codecs.encode(self._nonce[::-1], "hex"), 16)
 
     @property
-    def nTransactions(self):
+    def nTransactions(self) -> int:
         """
         Variable length
         Convert to int
@@ -177,20 +178,20 @@ class Block(Common, API, Export):
         # return ord(self._nTransactions)
 
     @property
-    def _hash(self):
+    def _hash(self) -> bytes:
         """
         Get prepapred header
         """
         return hash_SHA256_twice(self.prep_header())
 
     @property
-    def hash(self):
+    def hash(self) -> str:
         """
         Reverse prepared header, convert to hex, decode bytes to str
         """
         return codecs.encode(self._hash[::-1], "hex").decode()
 
-    def prep_header(self):
+    def prep_header(self) -> bytes:
         """
         Prep the block header for hashing as stored in the Block class where
         timestamp is already reversed (may change in future)
@@ -208,7 +209,7 @@ class Block(Common, API, Export):
 
         return header
 
-    def read_header(self):
+    def read_header(self) -> None:
         """
         Read the block header, store in ._name attributes
         """
@@ -242,7 +243,7 @@ class Block(Common, API, Export):
         # Print (depends on verbosity)
         self._print()
 
-    def read_trans(self):
+    def read_trans(self) -> None:
         """
         Read transaction information in block
         """
@@ -276,12 +277,12 @@ class Block(Common, API, Export):
         TODO:
             - Add hash verify (or to Dat or Chain?)
         """
-        # Block size check
+        pass
+        # Block size chec
         # if (self.end - self.start) != (self.blockSize + 8):
         #    raise BlockSizeMismatch
 
-
-    def trans_to_pandas_(self):
+    def trans_to_pandas_(self) -> pd.DataFrame:
         """
         Concatenate data for all loaded trans, return as pandas df
         Abridged version.
@@ -296,7 +297,7 @@ class Block(Common, API, Export):
 
         return df
 
-    def trans_to_pandas(self):
+    def trans_to_pandas(self) -> pd.DataFrame:
         """
         Concatenate data for all loaded trans, return as pandas df
         """
@@ -311,15 +312,15 @@ class Block(Common, API, Export):
         return df
 
     def trans_to_csv(self,
-                     fn='transactions.csv'):
+                     fn: str='transactions.csv') -> None:
         """
         Output entire transaction to table
         """
         self.trans_to_pandas().to_csv(fn)
 
     def api_verify(self,
-                   url="https://blockchain.info/rawblock/",
-                   wait=False):
+                   url: str="https://blockchain.info/rawblock/",
+                   wait: bool=False) -> None:
         """
         Query a block hash from Blockchain.info's api. Check it matches the
         blockon size, merkle root, number of transactions, previous block hash
@@ -362,7 +363,7 @@ class Block(Common, API, Export):
                                             "_"*30))
 
     def to_pic(self,
-           fn='test.pic'):
+               fn: str='test.pic') -> None:
 
         """
         Serialise object to pickle object
@@ -382,7 +383,7 @@ class Block(Common, API, Export):
         p = open(fn, 'wb')
         pickle.dump(out, p)
 
-    def _print(self):
+    def _print(self) -> None:
 
         if self.verb >= 3:
             print("{0}{1}Read block {2}{1}".format(3*" "*2,
@@ -425,8 +426,8 @@ class Trans(Common, API, Export):
     _index = -1
 
     def __init__(self, mmap, cursor,
-                 verb=4,
-                 f=None):
+                 verb: int=4,
+                 f: str=None) -> None:
 
         # Increment block counter and remember which one this is
         Trans._index += 1
@@ -437,7 +438,7 @@ class Trans(Common, API, Export):
         self.mmap = mmap
         self.verb = verb
         self.f = f
-        
+
         # Prepare other attributes
         self.api_validated = None
         self._version = None
@@ -449,46 +450,46 @@ class Trans(Common, API, Export):
         self.end = None
 
     @property
-    def version(self):
+    def version(self) -> str:
         """
         Convert to hex, decode bytes to str
         """
         return codecs.encode(self._version, "hex").decode()
 
     @property
-    def nInputs(self):
+    def nInputs(self) -> int:
         """
         Reverse endedness, convert to hex, convert to int in base 16
         """
         return int(codecs.encode(self._nInputs[::-1], "hex"), 16)
 
     @property
-    def nOutputs(self):
+    def nOutputs(self) -> int:
         """
         Reverse endedness, convert to hex, convert to int in base 16
         """
         return int(codecs.encode(self._nOutputs[::-1], "hex"), 16)
 
     @property
-    def lockTime(self):
+    def lockTime(self) -> str:
         """
         Convert to hex, decode bytes to str
         """
         return codecs.encode(self._lockTime, "hex").decode()
 
     @property
-    def _hash(self):
+    def _hash(self) -> bytes:
         return hash_SHA256_twice(self.prep_header())
 
     @property
-    def hash(self):
+    def hash(self) -> str:
         """
         Get prepared header, hash twice with SHA256, reverse, convert to hex,
         decode bytes to str
         """
         return codecs.encode(self._hash[::-1], "hex").decode()
 
-    def get_transaction(self):
+    def get_transaction(self) -> None:
 
         # Read the version: 4 bytes
         self._version = self.read_next(4)
@@ -540,7 +541,7 @@ class Trans(Common, API, Export):
         # Print (depends on verbosity)
         self._print()
 
-    def to_dict_full(self):
+    def to_dict_full(self) -> dict:
         """
         Convert transaction to dict, get (for now) first input and first output
         only
@@ -555,8 +556,8 @@ class Trans(Common, API, Export):
 
         # Convert first txIn to dict
         txI = self.txIn[0].to_dict(keys=['prevOutput', 'prevIndex',
-                                          'scriptLength', 'sequence',
-                                          'scriptSig'])
+                                         'scriptLength', 'sequence',
+                                         'scriptSig'])
 
         # Convert first txOut to dict
         txO = self.txOut[0].to_dict(keys=['value', 'pkScriptLen',
@@ -568,7 +569,7 @@ class Trans(Common, API, Export):
 
         return tr
 
-    def to_pandas_full(self):
+    def to_pandas_full(self) -> pd.DataFrame:
         """
         Output entire transaction to table
         """
@@ -577,10 +578,9 @@ class Trans(Common, API, Export):
         return pd.DataFrame(tr,
                             index=[self.index])
 
-
     def api_verify(self,
-                   url="https://blockchain.info/rawtx/",
-                   wait=False):
+                   url: str="https://blockchain.info/rawtx/",
+                   wait: bool=False) -> None:
         """
         Query a block hash from Blockchain.info's api. Check it matches the
         blockon size, merkle root, number of transactions, previous block hash
@@ -617,7 +617,7 @@ class Trans(Common, API, Export):
                                             self.api_validated,
                                             "_"*30))
 
-    def prep_header(self):
+    def prep_header(self) -> bytes:
         header = self._version \
                 + self._nInputs \
                 + self.txIn[0]._prevOutput \
@@ -662,9 +662,9 @@ class Trans(Common, API, Export):
 
 class TxIn(Common, Export):
     def __init__(self, mmap, cursor,
-                 n=None,
-                 verb=5,
-                 f=None):
+                 n: int=None,
+                 verb: int=5,
+                 f: str=None) -> None:
 
         # Add a reference, if provided
         if n is not None:
@@ -674,7 +674,7 @@ class TxIn(Common, Export):
         self.verb = verb
         self.mmap = mmap
         self.cursor = cursor
-        
+
         # Prepare other attributes
         self._sequence = None
         self._scriptSig = None
@@ -683,41 +683,41 @@ class TxIn(Common, Export):
         self._prevOutput = None
 
     @property
-    def prevOutput(self):
+    def prevOutput(self) -> str:
         """
         Convert to hex, decode bytes to str
         """
         return codecs.encode(self._prevOutput, "hex").decode()
 
     @property
-    def prevIndex(self):
+    def prevIndex(self) -> str:
         """
         Convert to hex, decode bytes to str
         """
         return codecs.encode(self._prevIndex, "hex").decode()
 
     @property
-    def scriptLength(self):
+    def scriptLength(self) -> int:
         """
         Convert to hex, convert to int from base 16
         """
         return int(codecs.encode(self._scriptLength, "hex"), 16)
 
     @property
-    def scriptSig(self):
+    def scriptSig(self) -> str:
         """
         Convert to hex, decode bytes to str
         """
         return codecs.encode(self._scriptSig, "hex").decode()
 
     @property
-    def sequence(self):
+    def sequence(self) -> str:
         """
         Convert to hex, decode bytes to str
         """
         return codecs.encode(self._sequence, "hex").decode()
 
-    def read_in(self):
+    def read_in(self) -> None:
         # TxIn:
         # Read the previous_output (input) hash: 34 bytes
         self._prevOutput = self.read_next(32)
@@ -734,7 +734,7 @@ class TxIn(Common, Export):
         # Read sequence: 4 bytes
         self._sequence = self.read_next(4)
 
-    def _print(self):
+    def _print(self) -> None:
         if self.verb >= 5:
             print("{0}Prev hash: {1}".format(5*" "*2,
                                              self.prevOutput))
@@ -750,9 +750,9 @@ class TxIn(Common, Export):
 
 class TxOut(Common, Export):
     def __init__(self, mmap, cursor,
-                 n=None,
-                 verb=5,
-                 f=None):
+                 n: int=None,
+                 verb: int=5,
+                 f: str=None) -> None:
 
         # Add a reference, if provided
         if n is not None:
@@ -768,9 +768,9 @@ class TxOut(Common, Export):
         self._pkScript = None
         self._pkScriptLen = None
         self._value = None
-        
+
     @property
-    def value(self):
+    def value(self) -> int:
         """
         Reverse endedness, convert to hexconvert to int from base 16,
         convert sat->btc
@@ -778,25 +778,25 @@ class TxOut(Common, Export):
         return int(codecs.encode(self._value[::-1], "hex"), 16)/100000000
 
     @property
-    def pkScriptLen(self):
+    def pkScriptLen(self) -> int:
         """
         Convert to hex, convert to int from base 16
         """
         return int(codecs.encode(self._pkScriptLen, "hex"), 16)
 
     @property
-    def pkScript(self):
+    def pkScript(self) -> str:
         """
         Convert to hex, decode bytes to str
         """
         return codecs.encode(self._pkScript, "hex").decode()
 
     @property
-    def parsed_pkScript(self):
+    def parsed_pkScript(self) -> list:
         return TxOut.split_script(self.pkScript)
 
     @property
-    def outputAddr(self):
+    def outputAddr(self) -> str:
         """
         Split script, detect output type, get address
         """
@@ -815,7 +815,7 @@ class TxOut(Common, Export):
         return addr
 
     @staticmethod
-    def split_script(pk_op):
+    def split_script(pk_op) -> list:
         """
         Split pk script into list of component data and OP_CODES, expects hex
         """
@@ -848,8 +848,8 @@ class TxOut(Common, Export):
         return script
 
     @staticmethod
-    def P2PKH(pk,
-              debug=False):
+    def P2PKH(pk: hex,
+              debug: bool=False) -> str:
         """
         pk = public key in hex
         """
@@ -875,7 +875,7 @@ class TxOut(Common, Export):
 
         return b58
 
-    def get_P2PKH(self):
+    def get_P2PKH(self) -> str:
         """
         Get script, extract public key, convert to address
         """
@@ -888,8 +888,8 @@ class TxOut(Common, Export):
         return b58
 
     @staticmethod
-    def PK2Addr(pk,
-                debug=False):
+    def PK2Addr(pk: hex,
+                debug: bool=False) -> str:
         """
         pk = public key in hex
         """
@@ -919,7 +919,7 @@ class TxOut(Common, Export):
         if debug:
             print("{0}checksum: {1}".format(" "*6, codecs.encode(cs, "hex")))
             print("{0}h2 + cs: {1}".format(" "*6,
-                              codecs.encode(h2 + cs, "hex")))
+                                           codecs.encode(h2 + cs, "hex")))
 
         # Add checksum and convert to base58
         b58 = base58.b58encode(h + cs)
@@ -928,7 +928,7 @@ class TxOut(Common, Export):
 
         return b58
 
-    def get_PK2Addr(self):
+    def get_PK2Addr(self) -> str:
         """
         Get script, extract public key, convert to address
         """
@@ -940,7 +940,7 @@ class TxOut(Common, Export):
 
         return b58
 
-    def read_out(self):
+    def read_out(self) -> None:
         # TxOut:
         # Read value in Satoshis: 8 bytes
         self._value = self.read_next(8)
@@ -954,7 +954,7 @@ class TxOut(Common, Export):
         # Record end of transaction for debugging
         self.end = self.cursor
 
-    def _print(self):
+    def _print(self) -> None:
         if self.verb >= 5:
             print("{0}BTC value: {1}".format(5*" "*2,
                                              self.value))
