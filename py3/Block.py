@@ -177,20 +177,6 @@ class Block(Common, API, Export):
         return int(codecs.encode(self._nTransactions[::-1], "hex"), 16)
         # return ord(self._nTransactions)
 
-    @property
-    def _hash(self) -> bytes:
-        """
-        Get prepapred header
-        """
-        return hash_SHA256_twice(self.prep_header())
-
-    @property
-    def hash(self) -> str:
-        """
-        Reverse prepared header, convert to hex, decode bytes to str
-        """
-        return codecs.encode(self._hash[::-1], "hex").decode()
-
     def prep_header(self) -> bytes:
         """
         Prep the block header for hashing as stored in the Block class where
@@ -476,18 +462,6 @@ class Trans(Common, API, Export):
         Convert to hex, decode bytes to str
         """
         return codecs.encode(self._lockTime, "hex").decode()
-
-    @property
-    def _hash(self) -> bytes:
-        return hash_SHA256_twice(self.prep_header())
-
-    @property
-    def hash(self) -> str:
-        """
-        Get prepared header, hash twice with SHA256, reverse, convert to hex,
-        decode bytes to str
-        """
-        return codecs.encode(self._hash[::-1], "hex").decode()
 
     def get_transaction(self) -> None:
 

@@ -7,8 +7,11 @@ import requests
 import codecs
 import mmap
 
+from typing import Tuple
 from datetime import datetime as dt
 import pandas as pd
+
+from pyx.utils import hash_SHA256_twice
 
 
 # %% Error classes
@@ -30,9 +33,9 @@ class Common():
     Functions common to Block, Transaction. Handles cursor tracking.
     """
     def read_next(self, length,
-                  asHex=False,
-                  rev=False,
-                  pr=False):
+                  asHex: bool=False,
+                  rev: bool=False,
+                  pr: bool=False) -> bytes:
         """
         Read from self.cursor to self.cursor + length
         """
@@ -61,7 +64,7 @@ class Common():
         return out
 
     def read_var(self,
-                 pr=False):
+                 pr: bool=False) -> bytes:
         """
         Read next variable length input. These are described in specifiction:
         https://en.bitcoin.it/wiki/Protocol_documentation#Variable_length_integer
@@ -84,7 +87,6 @@ class Common():
             # Reverse endedness
             # Convert to int in base 16
             out = self.read_next(2)
-            
         elif o == 254:  # 0xfe
             # Read next 4 bytes, convert as above
             out = self.read_next(4)
@@ -98,9 +100,9 @@ class Common():
         return out
 
     def map_next(self, length,
-                 asHex=False,
-                 rev=False,
-                 pr=False):
+                 asHex: int=False,
+                 rev: int=False,
+                 pr: int=False) -> tuple:
         """
         Get indexes of next data locations, rather than reading
         """
@@ -112,7 +114,7 @@ class Common():
         return (start, end)
 
     def map_var(self,
-                pr=False):
+                pr: int=False) -> Tuple[int, bytes]:
         """
         Find the indexes of the next (variable) data locations
         """
@@ -149,13 +151,31 @@ class Common():
         # Reopen file
         # Don't assume already open, or keep
         f = open(self.f, 'rb')
-        m = mmap.mmap(f.fileno(), 0, 
+        m = mmap.mmap(f.fileno(), 0,
                       access=mmap.ACCESS_READ)
 
         if r2 is None:
             r2 = r1+1
 
         return m[r1:r2]
+
+    @property
+    def _hash(self) -> bytes:
+        """
+        Get prepapred header, return hash
+
+        Here self.prep_header() will have been overloaded by
+        Trans.prep_header() or Block.prep_header()
+        """
+        return hash_SHA256_twice(self.prep_header())
+
+    @property
+    def hash(self) -> str:
+        """
+        Get prepared header, hash twice with SHA256, reverse, convert to hex,
+        decode bytes to str
+        """
+        return codecs.encode(self._hash[::-1], "hex").decode()
 
 
 class API():
@@ -175,8 +195,8 @@ class API():
         self.verb = verb
 
     def api_wait(self,
-                 wait=False,
-                 ttw=11):
+                 wait: bool=False,
+                 ttw: int=11):
         """
         Waits, or not, depending on wait
         """
@@ -208,8 +228,8 @@ class API():
             return True
 
     def api_get(self,
-                url="https://blockchain.info/rawblock/",
-                wait=False):
+                url: str="https://blockchain.info/rawblock/",
+                wait: bool=False):
         """
         Returns none on fail or skip, otherwise returns json
         """
@@ -222,12 +242,12 @@ class API():
         # Query
         try:
             resp = requests.get(url + str(self.hash))
-        except: # ConnectionError:
+        except:  # ConnectionError:
             # If no connection
             # Don't try again for ~20s
             # Record the last time
             API._lastQueryTime = time.time() + 10
-            
+
             return None
 
         # Record the last time
@@ -242,9 +262,9 @@ class API():
 
         return jr
 
-    def api_check(self, jr, validationFields):
+    def api_check(self, jr: dict, validationFields: dict) -> bool:
         """
-        Check API json on specified validation fields. Retruns true if all 
+        Check API json on specified validation fields. Retruns true if all
         tests pass, otherwise False.
         """
 
@@ -271,40 +291,42 @@ class API():
 
 class Export():
     def to_dict(self,
-                keys=['hash', 'start', 'end', 
-                      'blockSize', 'version', 'prevHash',
-                      'merkleRootHash', 'time', 'timestamp', 
-                      'nBits', 'nonce', 'nTransactions']):
+                keys: list=['hash', 'start',
+                            'end', 'blockSize',
+                            'version', 'prevHash',
+                            'merkleRootHash', 'time',
+                            'timestamp', 'nBits',
+                            'nonce', 'nTransactions']) -> dict:
         """
         Return object attributes as dict
-        
+
         Similar to block.__dict__ but gets properties not just attributes.
         """
-        
+
         # Create output dict
         bd = {}
         for k in keys:
             # Add each attribute with attribute name as key
             bd[k] = getattr(self, k)
-        
+
         return bd
-    
-    def to_pandas(self):
+
+    def to_pandas(self) -> pd.DataFrame:
         """
         Return dataframe row with object data
-    
+
         Index on object class index
         """
-        
+
         bd = self.to_dict()
-        
+
         return pd.DataFrame(bd,
                             index=[self.index])
-        
-    def to_csv(self, 
-               fn='test.csv'):
+
+    def to_csv(self,
+               fn: str='test.csv') -> None:
         """
         Save this object as .csv via pandas df
         """
-    
+
         self.to_pandas().to_csv(fn)
