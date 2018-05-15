@@ -9,7 +9,6 @@ import codecs
 import base58
 import pandas as pd
 import pickle
-import mmap
 
 from datetime import datetime as dt
 from py3.Common import Common, API, Export
@@ -30,7 +29,7 @@ class Block(Common, API, Export):
     # Count blocks that have been created
     _index = -1
 
-    def __init__(self, mmap: mmap.mmap, cursor: int,
+    def __init__(self, mmap: "mmap.mmap", cursor: int,
                  verb: int=3,
                  f: str=None,
                  **trans_kwargs) -> None:
@@ -67,22 +66,21 @@ class Block(Common, API, Export):
         h = getattr(self, 'hash', "No hash")
         t = getattr(self, 'time', "No time")
 
-        return "Block: {0} {1}".format(h, t)
+        return f"Block: {h} {t}"
 
     def __str__(self) -> str:
-        s = "{0}{1}Read block {2}{1}\n".format(3*" "*2, "*"*10, self.index)\
-            + "{0}Beginning at: {1}\n".format(3*" "*2, self.start)\
-            + "{0}magic: {1}\n".format(3*" "*2, self.magic)\
-            + "{0}block_size: {1}\n".format(3*" "*2, self.blockSize)\
-            + "{0}version: {1}\n".format(3*" "*2, self.version)\
-            + "{0}prevHash: {1}\n".format(3*" "*2, self.prevHash)\
-            + "{0}merkle_root: {1}\n".format(3*" "*2, self.merkleRootHash)\
-            + "{0}timestamp: {1}: {2}\n".format(3*" "*2,
-                                                self.timestamp,
-                                                self.time)\
-            + "{0}nBits: {1}\n".format(3*" "*2, self.nBits)\
-            + "{0}nonce: {1}\n".format(3*" "*2, self.nonce)\
-            + "{0}n transactions: {1}\n".format(3*" "*2, self.nTransactions)
+        b = 3*" "*2
+        s = f"{b}{'*'*10}Read block {self.index}{'*'*10}\n"\
+            f"{b}Beginning at: {self.start}\n"\
+            f"{b}magic: {self.magic}\n"\
+            f"{b}block_size: {self.blockSize}\n"\
+            f"{b}version: {self.version}\n"\
+            f"{b}prevHash: {self.prevHash}\n"\
+            f"{b}merkle_root: {self.merkleRootHash}\n"\
+            f"{b}timestamp: {self.timestamp}: {self.time}\n"\
+            f"{b}nBits: {self.nBits}\n"\
+            f"{b}nonce: {self.nonce}\n"\
+            f"{b}n transactions: {self.nTransactions}"
 
         return s
 
@@ -128,10 +126,9 @@ class Block(Common, API, Export):
         # Record end of block
         self.end = self.cursor
         if self.verb >= 3:
-            print("{0}Block ends at: {1}".format(self.verb*" "*2,
-                                                 self.end))
-            print("{0}{1}".format(3*" "*2,
-                                  "********************"))
+            b = self.verb*" "*2
+            print(f"{b}Block ends at: {self.end}")
+            print(f"{b}{'**'*10}")
 
         # Check size as expected
         self.verify()
@@ -440,16 +437,17 @@ class Trans(Common, API, Export):
     def __repr__(self):
         h = getattr(self, 'hash', "No hash")
 
-        return "Trans: {0} {1}".format(h)
+        return f"Trans: {h} {1}"
 
     def __str__(self):
-        s = "{0}{1}Read transaction{1}\n".format(4*" "*2, "*"*10)\
-            + "{0}Beginning at: {1}\n".format(4*" "*2, self.start)\
-            + "{0}Ending at: {1}\n".format(4*" "*2, self.end)\
-            + "{0}Transaction version: {1}\n".format(4*" "*2, self.version)\
-            + "{0}nInputs: {1}\n".format(4*" "*2, self.nInputs)\
-            + "{0}nOutputs: {1}\n".format(4*" "*2, self.nOutputs)\
-            + "{0}lock time: {1}\n".format(4*" "*2, self.lockTime)
+        b = 4*" "*2
+        s = f"{b}{'*'*10}Read transaction{'*'*10}\n"\
+            f"{b}Beginning at: {self.start}\n"\
+            f"{b}Ending at: {self.end}\n"\
+            f"{b}Transaction version: {self.version}\n"\
+            f"{b}nInputs: {self.nInputs}\n"\
+            f"{b}nOutputs: {self.nOutputs}\n"\
+            f"{b}lock time: {self.lockTime}\n"
 
         return s
 
@@ -457,9 +455,11 @@ class Trans(Common, API, Export):
         if self.verb >= 4:
 
             # Print header
-            print(self.__str__)
+            s = self.__str__
+            print(s)
 
             # Print inputs
+            print('???????????')
             for inp in self.txIn:
                 print(inp)
 
@@ -663,17 +663,19 @@ class TxIn(Common, Export):
         self._prevOutput = None
 
     def __str__(self) -> str:
-        s = "{0}Prev hash: {1}\n".format(5*" "*2, self.prevOutput)\
-            + "{0}Prev index: {1}\n".format(5*" "*2, self.prevIndex)\
-            + "{0}Script length: {1}\n".format(5*" "*2, self.scriptLength)\
-            + "{0}Script sig: {1}\n".format(5*" "*2, self.scriptSig)\
-            + "{0}Sequence: {1}\n".format(5*" "*2, self.sequence)
+        b = 5*" "*2
+        s = f"{b}Prev hash: {self.prevOutput}\n"\
+            f"{b}Prev index: {self.prevIndex}\n"\
+            f"{b}Script length: { self.scriptLength}\n"\
+            f"{b}Script sig: {self.scriptSig}\n"\
+            f"{b}Sequence: {self.sequence}\n"
 
         return s
 
     def __print__(self) -> None:
         if self.verb >= 5:
-            print("{0}Inputs".format(" "*self.verb*2))
+            b = 5*" "*2
+            print(f"{b}Inputs:")
             print(self.__str__)
 
     @property
@@ -751,15 +753,17 @@ class TxOut(Common, Export):
         self._value = None
 
     def __str__(self) -> str:
-        s = "{0}BTC value: {1}\n".format(5*" "*2, self.value)\
-             + "{0}pk script length: {1}\n".format(5*" "*2, self.pkScriptLen)\
-             + "{0}pk script: {1}\n".format(5*" "*2, self.pkScript)
+        b = 5*" "*2
+        s = f"{b}BTC value: {self.value}\n"\
+            f"{b}pk script length: {self.pkScriptLen}\n"\
+            f"{b}pk script: {self.pkScript}\n"
 
         return s
 
     def __print__(self) -> None:
         if self.verb >= 5:
-            print("{0}Inputs".format(" "*self.verb*2))
+            b = 5*" "*2
+            print("{b}Inputs")
             print(self.__str__)
 
     @property
