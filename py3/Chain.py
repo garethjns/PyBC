@@ -49,6 +49,15 @@ class Dat(Common, Export):
         self.block_kwargs = kwargs
         self.validateBlocks = kwargs.get('validateBlocks', True)
 
+    def __repr__(self) -> str:
+        s = f"dat: {self.f} @ {self.cursor}"
+        return s
+
+    def __str__(self) -> str:
+        s = f"{self.__repr__()}"\
+            f"Loaded: {self.nBlock}"
+        return s
+
     def prepare_mem(self) -> None:
         """
         Open file, map, reset cursor
@@ -92,8 +101,7 @@ class Dat(Common, Export):
             self.blocks[b.index] = b
 
             if self.verb == 2:
-                print("{0}Read block {1}".format(self.verb*" "*2,
-                                                 self.nBlock))
+                print(f"{self.verb*' '*2}Read block {self.nBlock}")
 
     def read_all(self) -> None:
         """
@@ -105,7 +113,7 @@ class Dat(Common, Export):
             nBlock += 1
 
         if self.verb >= 2:
-            print("\nRead {0} blocks".format(nBlock))
+            print(f"\nRead {nBlock} blocks")
 
     def blocks_to_pandas(self) -> pd.DataFrame:
         """
@@ -209,6 +217,10 @@ class Chain(Common):
         self.on = datStart
 
         self.dat_kwargs = kwargs
+
+    def __repr__(self) -> str:
+        s = f"Chain over {self.datPath} {self.datStart} - {self.datEnd}"
+        return s
 
     def read_next_Dat(self) -> None:
         """
