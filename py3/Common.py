@@ -160,6 +160,13 @@ class Common():
         return m[r1:r2]
 
     @property
+    def version(self) -> str:
+        """
+        Convert to hex, decode bytes to str
+        """
+        return codecs.encode(self._version, "hex").decode()
+
+    @property
     def _hash(self) -> bytes:
         """
         Get prepapred header, return hash

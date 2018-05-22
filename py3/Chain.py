@@ -10,7 +10,7 @@ import mmap
 import pandas as pd
 import pickle
 
-from py3.Common import Common, Export
+from py3.Common import Export
 from py3.Block import Block
 from pyx.utils import tqdm_off
 
@@ -24,7 +24,7 @@ except ImportError:
 
 # %% High level classes
 
-class Dat(Common, Export):
+class Dat(Export):
     """
     Class to represent .dat file on disk.
     Opens and maps .dat ready for reading
@@ -196,7 +196,7 @@ class Dat(Common, Export):
         pickle.dump(out, p)
 
 
-class Chain(Common):
+class Chain():
     """
     Class to handle chain and loading from .dat files
     """

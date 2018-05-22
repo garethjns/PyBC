@@ -148,13 +148,6 @@ class Block(Common, API, Export):
         return int(codecs.encode(self._blockSize[::-1], "hex"), 16)
 
     @property
-    def version(self) -> str:
-        """
-        Convert to hex, decode bytes to str
-        """
-        return codecs.encode(self._version, "hex").decode()
-
-    @property
     def prevHash(self) -> str:
         """
         Reverse, convert to hex, decode bytes to str
@@ -370,10 +363,8 @@ class Block(Common, API, Export):
 
         # Report
         if self.verb > 3:
-            print("{0}Validation passed: {1}\n{0}{2}".format(
-                                            " "*3,
-                                            self.api_validated,
-                                            "_"*30))
+            print(f"{' '*3}Validation passed: {self.api_validated}",
+                  f"\n{' '*3}{'_'*30}")
 
     def to_pic(self,
                fn: str='test.pic') -> None:
@@ -466,13 +457,6 @@ class Trans(Common, API, Export):
             # Print outputs
             for oup in self.txOut:
                 print(oup)
-
-    @property
-    def version(self) -> str:
-        """
-        Convert to hex, decode bytes to str
-        """
-        return codecs.encode(self._version, "hex").decode()
 
     @property
     def nInputs(self) -> int:
