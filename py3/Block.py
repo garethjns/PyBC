@@ -7,8 +7,8 @@
 
 import codecs
 import base58
-import pandas as pd
 import pickle
+import pandas as pd
 
 from datetime import datetime as dt
 from py3.Common import Common, API, Export
@@ -625,6 +625,9 @@ class Trans(Common, API, Export):
 
 
 class TxIn(Common, Export):
+    """
+    Class to handle transaction inputs
+    """
     def __init__(self, mmap, cursor,
                  n: int=None,
                  verb: int=5,
@@ -716,6 +719,9 @@ class TxIn(Common, Export):
 
 
 class TxOut(Common, Export):
+    """
+    Class to handle transaction outputs
+    """
     def __init__(self, mmap, cursor,
                  n: int=None,
                  verb: int=5,
@@ -922,6 +928,9 @@ class TxOut(Common, Export):
         return b58
 
     def read_out(self) -> None:
+        """
+        Read binary output information
+        """
         # TxOut:
         # Read value in Satoshis: 8 bytes
         self._value = self.read_next(8)

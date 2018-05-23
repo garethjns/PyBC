@@ -315,7 +315,7 @@ if __name__ == "__main__":
 
     # %% Read chain - 1 step
 
-    c = Chain(verb=4)
+    c = Chain(verb=0)
     c.read_next_Dat()
 
     # %% Read chain - all (in range)

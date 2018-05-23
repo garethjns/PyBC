@@ -5,11 +5,14 @@ PyBC/ python -m py3.tests
 # %% Imports
 
 import unittest
-import coverage
+# import coverage
+
+import codecs
 
 from pyx.utils import hash_SHA256, hash_SHA256_twice
 from py3.Chain import Dat
 from py3.Block import TxOut
+from py3.Common import Common
 
 
 # %% Tests for functions
@@ -91,6 +94,21 @@ class GenesisTest(unittest.TestCase):
 
 # %% Tests for classes
 
+class TestCommon(unittest.TestCase):
+    def setUp(self):
+        self.common = Common()
+
+    def test_2byte_varint(self):
+        # Fake cursor and byte stream
+        self.common.cursor = 0
+        self.common.mmap = b'\xfd@\x01\x04\xe3v@'
+        out = self.common.read_var()
+
+        out = int(codecs.encode(out[::-1], "hex"), 16)
+
+        self.assertEqual(out, 320)
+
+
 class TestTrans(unittest.TestCase):
     """
     Test py3.Block.Trans class methods
@@ -131,11 +149,11 @@ class TestTxOut(unittest.TestCase):
 
 if __name__ == '__main__':
 
-    cov = coverage.Coverage()
-    cov.start()
+    # cov = coverage.Coverage()
+    # cov.start()
 
     unittest.main()
 
-    cov.stop()
-    cov.save()
-    cov.html_report(directory='covhtml')
+    # cov.stop()
+    # cov.save()
+    # cov.html_report(directory='covhtml')

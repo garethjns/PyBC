@@ -87,15 +87,17 @@ class Common():
             # Reverse endedness
             # Convert to int in base 16
             out = self.read_next(2)
+
         elif o == 254:  # 0xfe
             # Read next 4 bytes, convert as above
             out = self.read_next(4)
+
         elif o == 255:  # 0xff
             # Read next 8 bytes, convert as above
             out = self.read_next(8)
 
         if pr:
-            print(int(out[::-1].encode("hex"), 16))
+            print(int(codecs.encode(out[::-1], "hex"), 16))
 
         return out
 
