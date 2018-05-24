@@ -84,13 +84,9 @@ class Block(Common, API, Export):
 
         return s
 
-    def __print__(self,
-                  force: bool=True) -> None:
-        """
-        Print the block details, for force is on ignore verbosity setting
-        """
-        if force or self.verb >= 3:
-            print(self.__str__)
+    def _print(self) -> None:
+        if self.verb >= 3:
+            print(self)
 
     @classmethod
     def genesis(self) -> bytes:
@@ -248,7 +244,7 @@ class Block(Common, API, Export):
         self._nTransactions = self.read_var()
 
         # Print (depends on verbosity)
-        print(self)
+        self._print()
 
     def read_trans(self) -> None:
         """
@@ -443,20 +439,21 @@ class Trans(Common, API, Export):
         return s
 
     def __print__(self):
+        # Print header
+        s = self.__str__
+        print(s)
+
+        # Print inputs
+        for inp in self.txIn:
+            print(inp)
+
+        # Print outputs
+        for oup in self.txOut:
+            print(oup)
+
+    def _print(self):
         if self.verb >= 4:
-
-            # Print header
-            s = self.__str__
-            print(s)
-
-            # Print inputs
-            print('???????????')
-            for inp in self.txIn:
-                print(inp)
-
-            # Print outputs
-            for oup in self.txOut:
-                print(oup)
+            print(self)
 
     @property
     def nInputs(self) -> int:
@@ -529,7 +526,7 @@ class Trans(Common, API, Export):
         self.end = self.cursor
 
         # Print (depends on verbosity)
-        print(self)
+        self._print()
 
     def to_dict_full(self) -> dict:
         """
@@ -660,10 +657,13 @@ class TxIn(Common, Export):
         return s
 
     def __print__(self) -> None:
+        b = 5*" "*2
+        print(f"{b}Inputs:")
+        print(self.__str__)
+
+    def _print(self) -> None:
         if self.verb >= 5:
-            b = 5*" "*2
-            print(f"{b}Inputs:")
-            print(self.__str__)
+            print(self)
 
     @property
     def prevOutput(self) -> str:
@@ -751,10 +751,13 @@ class TxOut(Common, Export):
         return s
 
     def __print__(self) -> None:
+        b = 5*" "*2
+        print(f"{b}Inputs")
+        print(self.__str__)
+
+    def _print(self) -> None:
         if self.verb >= 5:
-            b = 5*" "*2
-            print("{b}Inputs")
-            print(self.__str__)
+            print(self)
 
     @property
     def value(self) -> int:

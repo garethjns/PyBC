@@ -58,6 +58,13 @@ class Dat(Export):
             f"Loaded: {self.nBlock}"
         return s
 
+    def __print__(self):
+            self._print()
+
+    def _print(self):
+        if self.verb >= 2:
+            print(self)
+
     def prepare_mem(self) -> None:
         """
         Open file, map, reset cursor
@@ -315,7 +322,7 @@ if __name__ == "__main__":
 
     # %% Read chain - 1 step
 
-    c = Chain(verb=0)
+    c = Chain(verb=1)
     c.read_next_Dat()
 
     # %% Read chain - all (in range)
