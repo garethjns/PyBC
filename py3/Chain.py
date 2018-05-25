@@ -33,6 +33,7 @@ class Dat(Export):
 
     def __init__(self, f: str,
                  verb: int=2,
+                 defer_printing: int=0,
                  **kwargs) -> None:
 
         # Increment Dat counter and remember which one this is
@@ -46,6 +47,7 @@ class Dat(Export):
         self.blocks = {}
         self.nBlock = -1
         self.verb = verb
+        self.defer_printing = defer_printing
         self.block_kwargs = kwargs
         self.validateBlocks = kwargs.get('validateBlocks', True)
 
@@ -87,9 +89,18 @@ class Dat(Export):
         """
 
         for _ in range(n):
+            # Check progress to control printing
+            # If verb is >0 tqdm will already have been turned off in Chain
+            if Block._index+1 >= self.defer_printing:
+                # Allow printing
+                verb = self.verb
+            else:
+                # Keep off for now
+                verb = 0
+
             # Create Block object
             b = Block(self.mmap, self.cursor,
-                      verb=self.verb,
+                      verb=verb,
                       f=self.f,
                       **self.block_kwargs)
 
@@ -214,6 +225,10 @@ class Chain():
                  verb: int=1,
                  **kwargs) -> None:
 
+        """
+        Verb is set to 0 until def_printing number of blocks is reached.
+        Useful for quicker debuging of dodgy blocks
+        """
         self.datStart = datStart
         self.datn = datn
         self.datEnd = datStart+datn
@@ -243,7 +258,7 @@ class Chain():
         fn = "{0}blk{1:05d}.dat".format(self.datPath, datn)
 
         if self.verb >= 1:
-            print(f)
+            print(fn)
 
         d = Dat(fn,
                 verb=self.verb,
@@ -285,7 +300,7 @@ if __name__ == "__main__":
 
     f = 'Blocks/blk00000.dat'
     dat = Dat(f,
-              verb=5)
+              verb=6)
 
     # %% Read next block
 
@@ -321,10 +336,10 @@ if __name__ == "__main__":
     transTable.head()
 
     # %% Read chain - 1 step
-
-    c = Chain(verb=1)
+    """
+    c = Chain(verb=4)
     c.read_next_Dat()
-
+    """
     # %% Read chain - all (in range)
 
     c = Chain(verb=3,
@@ -336,3 +351,4 @@ if __name__ == "__main__":
     # %% Print example transaction
 
     c.dats[1].blocks[2].trans[0]._print()
+

@@ -82,6 +82,7 @@ class Common():
             # Return as is
             # by is already int here
             out = by
+
         elif o == 253:  # 0xfd
             # Read next 2 bytes
             # Reverse endedness
@@ -95,6 +96,15 @@ class Common():
         elif o == 255:  # 0xff
             # Read next 8 bytes, convert as above
             out = self.read_next(8)
+
+            """
+            print('\n')
+            print(o)
+            print(self.cursor)
+            print(out)
+            print(self.mmap[self.cursor-9:self.cursor])
+            print(int(codecs.encode(out[::-1], "hex"), 16))
+            """
 
         if pr:
             print(int(codecs.encode(out[::-1], "hex"), 16))

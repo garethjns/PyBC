@@ -70,16 +70,17 @@ class Block(Common, API, Export):
 
     def __str__(self) -> str:
         b = 3*" "*2
-        s = f"{b}{'*'*10}Read block {self.index}{'*'*10}\n"\
-            f"{b}Beginning at: {self.start}\n"\
-            f"{b}magic: {self.magic}\n"\
-            f"{b}block_size: {self.blockSize}\n"\
-            f"{b}version: {self.version}\n"\
-            f"{b}prevHash: {self.prevHash}\n"\
-            f"{b}merkle_root: {self.merkleRootHash}\n"\
-            f"{b}timestamp: {self.timestamp}: {self.time}\n"\
-            f"{b}nBits: {self.nBits}\n"\
-            f"{b}nonce: {self.nonce}\n"\
+        s = f"{b}{'*'*10}Read block {self.index}{'*'*10}\n" \
+            f"{b}Hash: {self.hash}\n" \
+            f"{b}Beginning at: {self.start}\n" \
+            f"{b}magic: {self.magic}\n" \
+            f"{b}block_size: {self.blockSize}\n" \
+            f"{b}version: {self.version}\n" \
+            f"{b}prevHash: {self.prevHash}\n" \
+            f"{b}merkle_root: {self.merkleRootHash}\n" \
+            f"{b}timestamp: {self.timestamp}: {self.time}\n" \
+            f"{b}nBits: {self.nBits}\n" \
+            f"{b}nonce: {self.nonce}\n" \
             f"{b}n transactions: {self.nTransactions}"
 
         return s
@@ -428,28 +429,29 @@ class Trans(Common, API, Export):
 
     def __str__(self):
         b = 4*" "*2
-        s = f"{b}{'*'*10}Read transaction{'*'*10}\n"\
-            f"{b}Beginning at: {self.start}\n"\
-            f"{b}Ending at: {self.end}\n"\
-            f"{b}Transaction version: {self.version}\n"\
-            f"{b}nInputs: {self.nInputs}\n"\
-            f"{b}nOutputs: {self.nOutputs}\n"\
+        s = f"{b}{'*'*10}Read transaction{'*'*10}\n" \
+            f"{b}Hash: {self.hash}\n" \
+            f"{b}Beginning at: {self.start}\n" \
+            f"{b}Ending at: {self.end}\n" \
+            f"{b}Transaction version: {self.version}\n" \
+            f"{b}nInputs: {self.nInputs}\n" \
+            f"{b}nOutputs: {self.nOutputs}\n" \
             f"{b}lock time: {self.lockTime}\n"
 
         return s
 
     def __print__(self):
         # Print header
-        s = self.__str__
+        s = self.__str__()
         print(s)
 
         # Print inputs
         for inp in self.txIn:
-            print(inp)
+            inp._print()
 
         # Print outputs
         for oup in self.txOut:
-            print(oup)
+            oup._print()
 
     def _print(self):
         if self.verb >= 4:
@@ -605,6 +607,9 @@ class Trans(Common, API, Export):
                                             "_"*30))
 
     def prep_header(self) -> bytes:
+        """
+        Only works for single input and output transactions for now
+        """
         header = self._version \
                 + self._nInputs \
                 + self.txIn[0]._prevOutput \
@@ -648,18 +653,14 @@ class TxIn(Common, Export):
 
     def __str__(self) -> str:
         b = 5*" "*2
-        s = f"{b}Prev hash: {self.prevOutput}\n"\
-            f"{b}Prev index: {self.prevIndex}\n"\
-            f"{b}Script length: { self.scriptLength}\n"\
-            f"{b}Script sig: {self.scriptSig}\n"\
-            f"{b}Sequence: {self.sequence}\n"
+        s = f"{b}Inputs:\n" \
+            f"{b}  Prev hash: {self.prevOutput}\n" \
+            f"{b}  Prev index: {self.prevIndex}\n" \
+            f"{b}  Script length: { self.scriptLength}\n" \
+            f"{b}  Script sig: {self.scriptSig}\n" \
+            f"{b}  Sequence: {self.sequence}\n"
 
         return s
-
-    def __print__(self) -> None:
-        b = 5*" "*2
-        print(f"{b}Inputs:")
-        print(self.__str__)
 
     def _print(self) -> None:
         if self.verb >= 5:
@@ -709,7 +710,10 @@ class TxIn(Common, Export):
         self._prevIndex = self.read_next(4)
 
         # Read the script length: 1 byte
-        self._scriptLength = self.read_next(1)
+        # self._scriptLength = self.read_next(1)
+
+        # Read the script length: VarInt
+        self._scriptLength = self.read_var()
 
         # Read the script sig: Variable
         self._scriptSig = self.read_next(self.scriptLength)
@@ -744,16 +748,13 @@ class TxOut(Common, Export):
 
     def __str__(self) -> str:
         b = 5*" "*2
-        s = f"{b}BTC value: {self.value}\n"\
-            f"{b}pk script length: {self.pkScriptLen}\n"\
-            f"{b}pk script: {self.pkScript}\n"
+        s = f"{b}Outputs:\n"\
+            f"{b}  To: {self.outputAddr}\n" \
+            f"{b}  BTC value: {self.value}\n" \
+            f"{b}  pk script length: {self.pkScriptLen}\n" \
+            f"{b}  pk script: {self.pkScript}\n"
 
         return s
-
-    def __print__(self) -> None:
-        b = 5*" "*2
-        print(f"{b}Inputs")
-        print(self.__str__)
 
     def _print(self) -> None:
         if self.verb >= 5:
@@ -800,7 +801,7 @@ class TxOut(Common, Export):
         elif len(pk) == 130:
             addr = self.get_PK2Addr()
         else:
-            addr = None
+            addr = "Unknown address"
 
         return addr
 
@@ -939,7 +940,10 @@ class TxOut(Common, Export):
         self._value = self.read_next(8)
 
         # pk script
-        self._pkScriptLen = self.read_next(1)
+        # self._pkScriptLen = self.read_next(1)
+
+        # pk script: VarInt
+        self._pkScriptLen = self.read_var(1)
 
         # Read the script: Variable
         self._pkScript = self.read_next(self.pkScriptLen)
