@@ -31,7 +31,8 @@ class Dat(Export):
     """
     _index = -1
 
-    def __init__(self, f: str,
+    def __init__(self, path:str,
+                 f: str,
                  verb: int=2,
                  defer_printing: int=0,
                  **kwargs) -> None:
@@ -41,6 +42,7 @@ class Dat(Export):
         self.index = Dat._index
 
         self.f = f
+        self.path = path
         self.mmap = None
         self.prepare_mem()
         self.cursor = 0
@@ -60,9 +62,6 @@ class Dat(Export):
             f"Loaded: {self.nBlock}"
         return s
 
-    def __print__(self):
-            self._print()
-
     def _print(self):
         if self.verb >= 2:
             print(self)
@@ -73,7 +72,7 @@ class Dat(Export):
         TODO:
             - Test this function, might need updating
         """
-        with open(self.f, 'rb') as fo:
+        with open(self.path + self.f, 'rb') as fo:
             self.mmap = mmap.mmap(fo.fileno(), 0,
                                   access=mmap.ACCESS_READ)
 
@@ -223,6 +222,7 @@ class Chain():
                  datStart: int=0,
                  datn: int=10,
                  verb: int=1,
+                 outputPath: str=None,
                  **kwargs) -> None:
 
         """
@@ -237,6 +237,7 @@ class Chain():
         self.datni = -1
         self.dats = {}
         self.on = datStart
+        self.outputPath = outputPath
 
         self.dat_kwargs = kwargs
 
@@ -255,15 +256,18 @@ class Chain():
         self.on += 1
 
     def readDat(self, datn: int) -> Dat:
-        fn = "{0}blk{1:05d}.dat".format(self.datPath, datn)
+        fn = "blk{0:05d}.dat".format(datn)
 
         if self.verb >= 1:
             print(fn)
 
-        d = Dat(fn,
+        d = Dat(path=self.datPath,
+                f=fn,
                 verb=self.verb,
                 **self.dat_kwargs)
+
         self.datni += 1
+
         return d
 
     def read_all(self) -> None:
@@ -284,6 +288,17 @@ class Chain():
                                     self.datStart+self.datn)):
             d = self.readDat(datn=fi)
             d.read_all()
+
+            if self.outputPath is not None:
+                # Save dat and transactions to csv
+                print(f"Saving blocks to {self.outputPath}")
+                d.blocks_to_pandas().to_csv(
+                        self.outputPath + d.f + "_blocks.csv",
+                        index=False)
+                print(f"Saving trans to {self.outputPath}")
+                d.trans_to_pandas().to_csv(
+                        self.outputPath + d.f + "_trans.csv",
+                        index=False)
 
             # For now:
             # Save dat contents to Chain (dats ordered, blocks not)
@@ -316,7 +331,7 @@ if __name__ == "__main__":
     # %% Read another 10 blocks and export
 
     # Read block
-    dat.read_next_block(100)
+    dat.read_next_block(10)
 
     # Export to pandas df
     blockTable = dat.blocks_to_pandas()
@@ -342,13 +357,11 @@ if __name__ == "__main__":
     """
     # %% Read chain - all (in range)
 
-    c = Chain(verb=3,
-              datStart=0,
-              datn=2,
-              validateBlocks=False)
+    c = Chain(verb=1,
+              datStart=1,
+              datn=1)
     c.read_all()
 
     # %% Print example transaction
 
     c.dats[1].blocks[2].trans[0]._print()
-

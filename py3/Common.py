@@ -71,10 +71,17 @@ class Common():
 
         Retuns output and number of steps taken by cursor
         """
+        # For debugging
+        start = self.cursor
 
         # Get the next byte
         by = self.read_next(1)
-        o = ord(by)
+        try:
+            o = ord(by)
+        except:
+            pass
+            # l = 1+1
+
         if pr:
             print(by)
 
@@ -96,15 +103,6 @@ class Common():
         elif o == 255:  # 0xff
             # Read next 8 bytes, convert as above
             out = self.read_next(8)
-
-            """
-            print('\n')
-            print(o)
-            print(self.cursor)
-            print(out)
-            print(self.mmap[self.cursor-9:self.cursor])
-            print(int(codecs.encode(out[::-1], "hex"), 16))
-            """
 
         if pr:
             print(int(codecs.encode(out[::-1], "hex"), 16))

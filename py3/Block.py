@@ -438,20 +438,16 @@ class Trans(Common, API, Export):
             f"{b}nOutputs: {self.nOutputs}\n" \
             f"{b}lock time: {self.lockTime}\n"
 
+        if self.verb > 5:
+            # Print inputs
+            for inp in self.txIn:
+                s += f"{inp.__str__()}\n"
+
+            # Print outputs
+            for oup in self.txOut:
+                s += f"{oup.__str__()}\n"
+
         return s
-
-    def __print__(self):
-        # Print header
-        s = self.__str__()
-        print(s)
-
-        # Print inputs
-        for inp in self.txIn:
-            inp._print()
-
-        # Print outputs
-        for oup in self.txOut:
-            oup._print()
 
     def _print(self):
         if self.verb >= 4:
