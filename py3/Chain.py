@@ -313,13 +313,12 @@ if __name__ == "__main__":
 
     # %% Load .dat
 
-    f = 'Blocks/blk00000.dat'
-    dat = Dat(f,
+    path = 'Blocks/'
+    f = 'blk00001.dat'
+    dat = Dat(path, f,
               verb=6)
 
-    # %% Read next block
-
-    # Read the block
+    # Read first block
     dat.read_next_block()
 
     # Verify it's correct (this may already have been done on import)
@@ -339,7 +338,7 @@ if __name__ == "__main__":
 
     # %% Print example transaction
 
-    dat.blocks[0].trans[0]._print()
+    print(dat.blocks[0].trans[0])
 
     # %% Verify it's correct
 
@@ -364,4 +363,4 @@ if __name__ == "__main__":
 
     # %% Print example transaction
 
-    c.dats[1].blocks[2].trans[0]._print()
+    print(c.dats[1].blocks[2].trans[0])
