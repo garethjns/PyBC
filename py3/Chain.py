@@ -31,7 +31,7 @@ class Dat(Export):
     """
     _index = -1
 
-    def __init__(self, path:str,
+    def __init__(self, path: str,
                  f: str,
                  verb: int=2,
                  defer_printing: int=0,
@@ -198,6 +198,7 @@ class Dat(Export):
         for bk in out.blocks.keys():
             # From block
             out.blocks[bk].mmap = []
+
             for tk in out.blocks[bk].trans.keys():
                 # From transaction
                 out.blocks[bk].trans[tk].mmap = []

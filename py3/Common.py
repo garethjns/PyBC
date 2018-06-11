@@ -129,27 +129,36 @@ class Common():
         Find the indexes of the next (variable) data locations
         """
         # Get the next byte
-        index = (self.cursor,)
+        index = self.cursor
         by = self.read_next(1)
-        o = ord(by)
+        try:
+            o = ord(by)
+        except:
+            pass
+            # l = 1+1
+
         if pr:
             print(by)
 
         if o < 253:
             # Return as is
             # by is already int here
-            out = index
+            out = by
+            index = (index, index + 1)
         elif o == 253:  # 0xfd
             # Read next 2 bytes
             # Reverse endedness
             # Convert to int in base 16
             out = self.map_next(2)
+            index = (index, index + 1 + 2)
         elif o == 254:  # 0xfe
             # Read next 4 bytes, convert as above
             out = self.map_next(4)
+            index = (index, index + 1 + 4)
         elif o == 255:  # 0xff
             # Read next 8 bytes, convert as above
             out = self.map_next(8)
+            index = (index, index + 1 + 8)
 
         if pr:
             print(out)

@@ -32,6 +32,7 @@ class Block(Common, API, Export):
     def __init__(self, mmap: "mmap.mmap", cursor: int,
                  verb: int=3,
                  f: str=None,
+                 map: bool=False,
                  **trans_kwargs) -> None:
 
         # Increment block counter and remember which one this is
@@ -48,19 +49,20 @@ class Block(Common, API, Export):
         self.verb = verb
         self.f = f
         self.validateTrans = self.trans_kwargs.get('validateTrans', True)
-
-        # Prepare remaning attributes
         self.end = None
-        self._magic = None
-        self._BlockSize = None
-        self._version = None
-        self._prevHash = None
-        self._merkleRootHash = None
-        self._timestamp = None
-        self._nBits = None
-        self._nonce = None
-        self._nTransactions = None
         self.trans = {}
+
+        # Prepare remaning attributes unless this is a map, then skip
+        if map is False:
+            self._magic = None
+            self._BlockSize = None
+            self._version = None
+            self._prevHash = None
+            self._merkleRootHash = None
+            self._timestamp = None
+            self._nBits = None
+            self._nonce = None
+            self._nTransactions = None
 
     def __repr__(self) -> str:
         h = getattr(self, 'hash', "No hash")
@@ -400,7 +402,8 @@ class Trans(Common, API, Export):
 
     def __init__(self, mmap, cursor,
                  verb: int=4,
-                 f: str=None) -> None:
+                 f: str=None,
+                 map: bool=False) -> None:
 
         # Increment block counter and remember which one this is
         Trans._index += 1
@@ -411,16 +414,17 @@ class Trans(Common, API, Export):
         self.mmap = mmap
         self.verb = verb
         self.f = f
+        self.txIn = {}
+        self.txOut = {}
+        self.api_validated = None
+        self.end = None
 
         # Prepare other attributes
-        self.api_validated = None
-        self._version = None
-        self._nInputs = None
-        self.txIn = {}
-        self._nOutputs = None
-        self.txOut = {}
-        self._lockTime = None
-        self.end = None
+        if map is False:
+            self._version = None
+            self._nInputs = None
+            self._nOutputs = None
+            self._lockTime = None
 
     def __repr__(self):
         h = getattr(self, 'hash', "No hash")
@@ -607,17 +611,17 @@ class Trans(Common, API, Export):
         Only works for single input and output transactions for now
         """
         header = self._version \
-                + self._nInputs \
-                + self.txIn[0]._prevOutput \
-                + self.txIn[0]._prevIndex \
-                + self.txIn[0]._scriptLength \
-                + self.txIn[0]._scriptSig \
-                + self.txIn[0]._sequence \
-                + self._nOutputs \
-                + self.txOut[0]._value \
-                + self.txOut[0]._pkScriptLen \
-                + self.txOut[0]._pkScript \
-                + self._lockTime
+            + self._nInputs \
+            + self.txIn[0]._prevOutput \
+            + self.txIn[0]._prevIndex \
+            + self.txIn[0]._scriptLength \
+            + self.txIn[0]._scriptSig \
+            + self.txIn[0]._sequence \
+            + self._nOutputs \
+            + self.txOut[0]._value \
+            + self.txOut[0]._pkScriptLen \
+            + self.txOut[0]._pkScript \
+            + self._lockTime
 
         return header
 
@@ -629,7 +633,8 @@ class TxIn(Common, Export):
     def __init__(self, mmap, cursor,
                  n: int=None,
                  verb: int=5,
-                 f: str=None) -> None:
+                 f: str=None,
+                 map: bool=False) -> None:
 
         # Add a reference, if provided
         if n is not None:
@@ -641,11 +646,12 @@ class TxIn(Common, Export):
         self.cursor = cursor
 
         # Prepare other attributes
-        self._sequence = None
-        self._scriptSig = None
-        self._scriptLength = None
-        self._prevIndex = None
-        self._prevOutput = None
+        if map is False:
+            self._sequence = None
+            self._scriptSig = None
+            self._scriptLength = None
+            self._prevIndex = None
+            self._prevOutput = None
 
     def __str__(self) -> str:
         b = 5*" "*2
@@ -699,7 +705,7 @@ class TxIn(Common, Export):
 
     def read_in(self) -> None:
         # TxIn:
-        # Read the previous_output (input) hash: 34 bytes
+        # Read the previous_output (input) hash: 34 bytes (34?!)
         self._prevOutput = self.read_next(32)
 
         # Read the index of the previous output (input)
@@ -725,7 +731,8 @@ class TxOut(Common, Export):
     def __init__(self, mmap, cursor,
                  n: int=None,
                  verb: int=5,
-                 f: str=None) -> None:
+                 f: str=None,
+                 map: bool=False) -> None:
 
         # Add a reference, if provided
         if n is not None:
@@ -735,12 +742,13 @@ class TxOut(Common, Export):
         self.verb = verb
         self.mmap = mmap
         self.cursor = cursor
+        self.end = None
 
         # Prepare other attributes
-        self.end = None
-        self._pkScript = None
-        self._pkScriptLen = None
-        self._value = None
+        if map is False:
+            self._pkScript = None
+            self._pkScriptLen = None
+            self._value = None
 
     def __str__(self) -> str:
         b = 5*" "*2
@@ -939,7 +947,7 @@ class TxOut(Common, Export):
         # self._pkScriptLen = self.read_next(1)
 
         # pk script: VarInt
-        self._pkScriptLen = self.read_var(1)
+        self._pkScriptLen = self.read_var()
 
         # Read the script: Variable
         self._pkScript = self.read_next(self.pkScriptLen)

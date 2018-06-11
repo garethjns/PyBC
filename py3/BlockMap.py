@@ -21,9 +21,19 @@ from py3.Block import Block, Trans, TxIn, TxOut
 
 class BlockMap(Block):
     """
-    Test class to map to location in .dat file, rather than holding data in
-    attributes
+    Class to map Blocks to location in .dat file, rather than holding data in attributes.
+    Access via properties instead.
     """
+
+    def __init__(self, *args, **kwargs) -> None:
+        """
+        Run super init with map parameter set to true. Othwerwise the same.
+        This avoids trying to preallocate attributes (which are now properties)
+        to None.
+        """
+        super().__init__(*args, **kwargs,
+                         map=True)
+
     @property
     def _magic(self):
         """
@@ -101,7 +111,7 @@ class BlockMap(Block):
 
         # Read the number of transactions: VarInt 1-9 bytes
         self._nTransactions_loc, self._nTransactions_i = self.map_var()
-        
+
         # Print (depends on verbosity)
         self._print()
 
@@ -115,7 +125,8 @@ class BlockMap(Block):
             # Make transaction objects (and table later?)
             trans = TransMap(self.mmap, self.cursor,
                              verb=self.verb,
-                             f=self.f)
+                             f=self.f,
+                             **self.trans_kwargs)
 
             # Read the transaction
             trans.get_transaction()
@@ -132,6 +143,20 @@ class BlockMap(Block):
 
 
 class TransMap(Trans):
+    """
+    Class to map Trans to location in .dat file, rather than holding data in attributes.
+    Access via properties instead.
+    """
+
+    def __init__(self, *args, **kwargs) -> None:
+        """
+        Run super init with map parameter set to true. Othwerwise the same.
+        This avoids trying to preallocate attributes (which are now properties)
+        to None.
+        """
+        super().__init__(*args, **kwargs,
+                         map=True)
+
     @property
     def _version(self):
         return self.read_range(r1=self._version_i[0],
@@ -150,7 +175,7 @@ class TransMap(Trans):
         return self.read_range(r1=self._lockTime_i[0],
                                r2=self._lockTime_i[1])
 
-    def get_transaction(self):
+    def get_transaction(self) -> None:
 
         # Read the version: 4 bytes
         self._version_i = self.map_next(4)
@@ -160,7 +185,7 @@ class TransMap(Trans):
 
         # Read the inputs (variable bytes)
         self.txIn = []
-        for inp in range(self.nInputs):
+        for _ in range(self.nInputs):
             # Create the TxIn object
             txIn = TxInMap(self.mmap, self.cursor,
                            verb=self.verb,
@@ -178,13 +203,13 @@ class TransMap(Trans):
         # Read number of outputs: VarInt 1-9 bytes (or CVarInt?)
         self._nOutputs_loc, self._nOutputs_i = self.map_var()
 
-         # Read the outputs (varible bytes)
+        # Read the outputs (varible bytes)
         self.txOut = []
-        for oup in range(self.nOutputs):
+        for _ in range(self.nOutputs):
             # Create TxOut object
             txOut = TxOutMap(self.mmap, self.cursor,
-                          verb=self.verb,
-                          f=self.f)
+                             verb=self.verb,
+                             f=self.f)
 
             # Read the output data
             txOut.read_out()
@@ -197,7 +222,7 @@ class TransMap(Trans):
 
         # Read the locktime (4 bytes)
         self._lockTime_i = self.map_next(4)
-        
+
         # Record the end for reference, remove later?
         self.end = self.cursor
 
@@ -206,6 +231,20 @@ class TransMap(Trans):
 
 
 class TxInMap(TxIn):
+    """
+    Class to map TxIns to location in .dat file, rather than holding data in attributes.
+    Access via properties instead.
+    """
+
+    def __init__(self, *args, **kwargs) -> None:
+        """
+        Run super init with map parameter set to true. Othwerwise the same.
+        This avoids trying to preallocate attributes (which are now properties)
+        to None.
+        """
+        super().__init__(*args, **kwargs,
+                         map=True)
+
     @property
     def _prevOutput(self):
         return self.read_range(r1=self._prevOutput_i[0],
@@ -231,16 +270,16 @@ class TxInMap(TxIn):
         return self.read_range(r1=self._sequence_i[0],
                                r2=self._sequence_i[1])
 
-    def read_in(self):
+    def read_in(self) -> None:
         # TxIn:
-        # Read the previous_output (input) hash: 34 bytess
-        self._prevOutput_i = self.map_next(34)
+        # Read the previous_output (input) hash: 34 bytes (34?!)
+        self._prevOutput_i = self.map_next(32)
 
         # Read the index of the previous output (input)
-        self._prevIndex_i = self.read_next(4)
+        self._prevIndex_i = self.map_next(4)
 
         # Read the script length: 1 byte
-        self._scriptLength_i = self.map_next(1)
+        self._scriptLength_i = self.map_var()
 
         # Read the script sig: Variable
         self._scriptSig_i = self.map_next(self.scriptLength)
@@ -250,6 +289,19 @@ class TxInMap(TxIn):
 
 
 class TxOutMap(TxOut):
+    """
+    Class to map TxOuts to location in .dat file, rather than holding data in attributes.
+    Access via properties instead.
+    """
+
+    def __init__(self, *args, **kwargs):
+        """
+        Run super init with map parameter set to true. Othwerwise the same.
+        This avoids trying to preallocate attributes (which are now properties)
+        to None.
+        """
+        super().__init__(*args, **kwargs,
+                         map=True)
 
     @property
     def _value(self):
@@ -266,13 +318,13 @@ class TxOutMap(TxOut):
         return self.read_range(r1=self._pkScript_i[0],
                                r2=self._pkScript_i[1])
 
-    def read_out(self):
+    def read_out(self) -> None:
         # TxOut:
         # Read value in Satoshis: 8 bytes
         self._value_i = self.map_next(8)
 
         # pk script
-        self._pkScriptLen_i = self.map_next(1)
+        self._pkScriptLen_i = self.map_var()
 
         # Read the script: Variable
         self._pkScript_i = self.map_next(self.pkScriptLen)
@@ -282,4 +334,6 @@ class TxOutMap(TxOut):
 
 
 if __name__ == "__main__":
-    ""
+    """
+    See map_dat.py
+    """
