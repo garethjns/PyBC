@@ -39,7 +39,7 @@ class Block(Common, API, Export):
         Block._index += 1
         self.index = Block._index
 
-        # Hold keyword args for lower lebels
+        # Hold keyword args for lower labels
         self.trans_kwargs = trans_kwargs
 
         # Starting from the given cursor position, read block
@@ -170,7 +170,7 @@ class Block(Common, API, Export):
     @property
     def time(self) -> dt:
         """
-        Doesn't have _time equivilent, uses self._timestamp
+        Doesn't have _time equivalent, uses self._timestamp
         """
         return dt.fromtimestamp(self.timestamp)
 
@@ -284,7 +284,7 @@ class Block(Common, API, Export):
             - Add hash verify (or to Dat or Chain?)
         """
         pass
-        # Block size chec
+        # Block size check
         # if (self.end - self.start) != (self.blockSize + 8):
         #    raise BlockSizeMismatch
 

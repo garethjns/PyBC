@@ -79,7 +79,8 @@ class BlockMap(Block):
 
     @property
     def _nTransactions(self):
-        return self.read_range(r1=self._nTransactions_i[0])
+        return self.read_range(r1=self._nTransactions_i[0],
+                               r2=self._nTransactions_i[1])
 
     def read_header(self):
         """
@@ -110,7 +111,7 @@ class BlockMap(Block):
         self._nonce_i = self.map_next(4)
 
         # Read the number of transactions: VarInt 1-9 bytes
-        self._nTransactions_loc, self._nTransactions_i = self.map_var()
+        self._nTransactions_i, _ = self.map_var()
 
         # Print (depends on verbosity)
         self._print()
@@ -164,11 +165,13 @@ class TransMap(Trans):
 
     @property
     def _nInputs(self):
-        return self.read_range(r1=self._nInputs_i[0])
+        return self.read_range(r1=self._nInputs_i[0],
+                               r2=self._nInputs_i[1])
 
     @property
     def _nOutputs(self):
-        return self.read_range(r1=self._nOutputs_i[0])
+        return self.read_range(r1=self._nOutputs_i[0],
+                               r2=self._nOutputs_i[1])
 
     @property
     def _lockTime(self):
@@ -181,7 +184,7 @@ class TransMap(Trans):
         self._version_i = self.map_next(4)
 
         # Read number of inputs: VarInt 1-9 bytes (or CVarInt?)
-        self._nInputs_loc, self._nInputs_i = self.map_var()
+        self._nInputs_i, _ = self.map_var()
 
         # Read the inputs (variable bytes)
         self.txIn = []
@@ -201,7 +204,7 @@ class TransMap(Trans):
             self.cursor = txIn.cursor
 
         # Read number of outputs: VarInt 1-9 bytes (or CVarInt?)
-        self._nOutputs_loc, self._nOutputs_i = self.map_var()
+        self._nOutputs_i, _ = self.map_var()
 
         # Read the outputs (varible bytes)
         self.txOut = []
@@ -279,7 +282,7 @@ class TxInMap(TxIn):
         self._prevIndex_i = self.map_next(4)
 
         # Read the script length: 1 byte
-        self._scriptLength_i = self.map_var()
+        self._scriptLength_i, _ = self.map_var()
 
         # Read the script sig: Variable
         self._scriptSig_i = self.map_next(self.scriptLength)
@@ -324,7 +327,7 @@ class TxOutMap(TxOut):
         self._value_i = self.map_next(8)
 
         # pk script
-        self._pkScriptLen_i = self.map_var()
+        self._pkScriptLen_i, i = self.map_var()
 
         # Read the script: Variable
         self._pkScript_i = self.map_next(self.pkScriptLen)
