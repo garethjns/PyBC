@@ -8,13 +8,15 @@ from py3.ChainMap import DatMap
 path = 'Blocks/'
 f = 'blk00001.dat'
 dat = DatMap(path, f,
-             verb=6)
+             verb=1)
 
 # %% Read next block
 
 # Read the block
 dat.read_next_block(10)
+# dat.read_all()
 
+# %%
 # Verify it's correct (this may already have been done on import)
 dat.blocks[0].api_verify()
 

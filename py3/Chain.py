@@ -44,6 +44,7 @@ class Dat(Export):
         self.f = f
         self.path = path
         self.mmap = None
+        self.length = None
         self.prepare_mem()
         self.cursor = 0
         self.blocks = {}
@@ -78,6 +79,7 @@ class Dat(Export):
 
         # Reset cursor and block count
         self.cursor = 0
+        self.length = len(self.mmap)
         Block._index = -1
 
     def read_next_block(self,
@@ -125,8 +127,11 @@ class Dat(Export):
         Read all blocks in .dat
         """
         nBlock = 0
-        while self.cursor < len(self.mmap):
+        pbar = tqdm(total=int(self.length/1024/1024),
+                    unit_divisor=1024)
+        while self.cursor < self.length:
             self.read_next_block()
+            pbar.update((self.blocks[nBlock].end - self.blocks[nBlock].start)/1024/1024)
             nBlock += 1
 
         if self.verb >= 2:
@@ -277,7 +282,8 @@ class Chain():
         Or in limited range specified by datStart -> datStart+datn
         """
         # If verb is low, use tqdm
-        if self.verb <= 1:
+        # Disabled for now
+        if self.verb <= -1:
             # Note if tqdm isn't available, it'll use the placeholder
             # function which does nothing
             tqdm_runner = tqdm
