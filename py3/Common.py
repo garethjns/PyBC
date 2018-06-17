@@ -76,11 +76,7 @@ class Common():
 
         # Get the next byte
         by = self.read_next(1)
-        try:
-            o = ord(by)
-        except:
-            pass
-            # l = 1+1
+        o = ord(by)
 
         if pr:
             print(by)
@@ -117,7 +113,7 @@ class Common():
         Get indexes of next data locations, rather than reading
         """
         start = self.cursor
-        print(length)
+
         end = self.cursor + length
         self.cursor = end
 
@@ -131,11 +127,7 @@ class Common():
         # Get the next byte
         index = self.cursor
         by = self.read_next(1)
-        try:
-            o = ord(by)
-        except:
-            pass
-            # l = 1+1
+        o = ord(by)
 
         if pr:
             print(by)
