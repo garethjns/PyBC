@@ -8,6 +8,7 @@ quick tests
 
 import mmap
 import pandas as pd
+import numpy as np
 import pickle
 
 from py3.Common import Export
@@ -44,7 +45,7 @@ class Dat(Export):
         self.f = f
         self.path = path
         self.mmap = None
-        self.length = None
+        self.length = 0
         self.prepare_mem()
         self.cursor = 0
         self.blocks = {}
@@ -83,13 +84,23 @@ class Dat(Export):
         Block._index = -1
 
     def read_next_block(self,
-                        n: int=1) -> None:
+                        n: int=1,
+                        tqdm_on=True) -> None:
         """
         Read and return the next block
         Track cursor position
         """
+        # If verb is low,
+        # tqdm is not specifically turned off,
+        # and available.
+        if tqdm_on:
+            # Note if tqdm isn't available, it'll use the placeholder
+            # function which does nothing
+            tqdm_runner = tqdm
+        else:
+            tqdm_runner = tqdm_off
 
-        for _ in range(n):
+        for _ in tqdm_runner(range(n)):
             # Check progress to control printing
             # If verb is >0 tqdm will already have been turned off in Chain
             if Block._index+1 >= self.defer_printing:
@@ -124,14 +135,21 @@ class Dat(Export):
 
     def read_all(self) -> None:
         """
-        Read all blocks in .dat
+        Read all blocks in .dat.
+
+        Reads one by one until end is found.
         """
         nBlock = 0
-        pbar = tqdm(total=int(self.length/1024/1024),
+        pbar = tqdm(total=int(self.length),
                     unit_divisor=1024)
         while self.cursor < self.length:
-            self.read_next_block()
-            pbar.update((self.blocks[nBlock].end - self.blocks[nBlock].start)/1024/1024)
+            # Read next block without waitbars
+            self.read_next_block(tqdm_on=False)
+            # And update this one manually
+            pbar.update(np.around(
+                (self.blocks[nBlock].end - self.blocks[nBlock].start),
+                4).astype(np.int))
+
             nBlock += 1
 
         if self.verb >= 2:
@@ -281,18 +299,9 @@ class Chain():
         Read all blocks in .dat
         Or in limited range specified by datStart -> datStart+datn
         """
-        # If verb is low, use tqdm
-        # Disabled for now
-        if self.verb <= -1:
-            # Note if tqdm isn't available, it'll use the placeholder
-            # function which does nothing
-            tqdm_runner = tqdm
-        else:
-            tqdm_runner = tqdm_off
-
         # Read requested range
-        for fi in tqdm_runner(range(self.datStart,
-                                    self.datStart+self.datn)):
+        for fi in range(self.datStart,
+                                    self.datStart+self.datn):
             d = self.readDat(datn=fi)
             d.read_all()
 

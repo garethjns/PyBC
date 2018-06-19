@@ -25,7 +25,8 @@ dat.blocks[0].to_dict()
 # %% Read another 10 blocks and export
 
 # Read block
-dat.read_next_block(10)
+dat.verb = 1
+dat.read_next_block(500)
 
 # Export to pandas df
 blockTable = dat.blocks_to_pandas()

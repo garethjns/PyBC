@@ -6,7 +6,7 @@ from py3.ChainMap import DatMap
 # %% Map a .dat
 
 path = 'Blocks/'
-f = 'blk00001.dat'
+f = 'blk00002.dat'
 dat = DatMap(path, f,
              verb=1)
 

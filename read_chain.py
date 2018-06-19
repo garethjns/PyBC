@@ -7,7 +7,7 @@ from py3.Chain import Chain
 
 # %% Create chain
 
-c = Chain(verb=1,
+c = Chain(verb=3,
           datStart=3,
           datn=1,
           outputPath="ExportedBlocks/")
