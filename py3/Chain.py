@@ -87,8 +87,9 @@ class Dat(Export):
                         n: int=1,
                         tqdm_on=True) -> None:
         """
-        Read and return the next block
-        Track cursor position
+        Read and return the next block.
+
+        Track cursor position.
         """
         # If verb is low,
         # tqdm is not specifically turned off,
@@ -112,8 +113,8 @@ class Dat(Export):
 
             # Create Block object
             b = Block(self.mmap, self.cursor,
+                      f=self.path+self.f,
                       verb=verb,
-                      f=self.f,
                       **self.block_kwargs)
 
             # Read it

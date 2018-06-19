@@ -6,14 +6,14 @@ from py3.ChainMap import DatMap
 # %% Map a .dat
 
 path = 'Blocks/'
-f = 'blk00002.dat'
+f = 'blk00003.dat'
 dat = DatMap(path, f,
-             verb=1)
+             verb=6)
 
 # %% Read next block
 
 # Read the block
-dat.read_next_block(10)
+dat.read_next_block(500)
 # dat.read_all()
 
 # %%

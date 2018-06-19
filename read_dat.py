@@ -8,9 +8,9 @@ from py3.Chain import Dat
 
 # %% Read .dat
 path = 'Blocks/'
-f = 'blk00001.dat'
+f = 'blk00003.dat'
 dat = Dat(path, f,
-          verb=6)
+          verb=1)
 
 
 # Read the block

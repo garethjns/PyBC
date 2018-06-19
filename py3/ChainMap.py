@@ -4,6 +4,14 @@
 
 from py3.Chain import Chain, Dat
 from py3.BlockMap import BlockMap
+from pyx.utils import tqdm_off
+
+# Optional import for pretty waitbars
+try:
+    from tqdm import tqdm
+    print("Imported tqdm")
+except ImportError:
+    tqdm = tqdm_off
 
 
 # %% Higher level classes
@@ -24,32 +32,55 @@ class ChainMap(Chain):
 
 class DatMap(Dat):
     def read_next_block(self,
-                        n: int=1) -> None:
+                        n: int=1,
+                        tqdm_on=True) -> None:
         """
-        Read and return the next block
-        Track cursor position
+        Read and return the next block.
+
+        Track cursor position.
         """
-        b = BlockMap(self.mmap, self.cursor,
-                     f=self.path+self.f,
-                     verb=self.verb,
-                     **self.block_kwargs)
+        # If verb is low,
+        # tqdm is not specifically turned off,
+        # and available.
+        if tqdm_on:
+            # Note if tqdm isn't available, it'll use the placeholder
+            # function which does nothing
+            tqdm_runner = tqdm
+        else:
+            tqdm_runner = tqdm_off
 
-        # Read it
-        b.read_block()
+        for _ in tqdm_runner(range(n)):
+            # Check progress to control printing
+            # If verb is >0 tqdm will already have been turned off in Chain
+            if BlockMap._index+1 >= self.defer_printing:
+                # Allow printing
+                verb = self.verb
+            else:
+                # Keep off for now
+                verb = 0
 
-        # Validate, if on
-        if self.validateBlocks:
-            b.api_verify()
+            # Create Block object
+            b = BlockMap(self.mmap, self.cursor,
+                         f=self.path+self.f,
+                         verb=verb,
+                         **self.block_kwargs)
 
-        self.cursor = b.end
-        self.nBlock += 1
+            # Read it
+            b.read_block()
 
-        # Save block dat object - unordered at this point
-        # self.blocks[self.nBlock] = b
-        self.blocks[b.index] = b
+            # Validate, if on
+            if self.validateBlocks:
+                b.api_verify()
 
-        if self.verb == 2:
-            print(f"{self.verb*' '*2}Read block {self.nBlock}")
+            self.cursor = b.end
+            self.nBlock += 1
+
+            # Save block dat object - unordered at this point
+            # self.blocks[self.nBlock] = b
+            self.blocks[b.index] = b
+
+            if self.verb == 2:
+                print(f"{self.verb*' '*2}Read block {self.nBlock}")
 
 
 if __name__ == "__main__":
