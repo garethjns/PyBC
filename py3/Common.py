@@ -165,10 +165,15 @@ class Common():
         m = mmap.mmap(f.fileno(), 0,
                       access=mmap.ACCESS_READ)
 
+        # If one index passed, read this byte only.
         if r2 is None:
             r2 = r1+1
 
-        return m[r1:r2]
+        # Read and close file
+        out = m[r1:r2]
+        m.close()
+
+        return out
 
     @property
     def version(self) -> str:
