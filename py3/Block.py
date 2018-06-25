@@ -34,7 +34,19 @@ class Block(Common, API, Export):
                  f: str=None,
                  map: bool=False,
                  **trans_kwargs) -> None:
+        """
+        Prepare Block object.
 
+        Args
+            mmap mapped .dat.
+            cursor: Current location in mapped file.
+            f: Full path to .dat file.
+            map: If True, just map file rather than load. Slower, but
+                uses less memory. Default = False.
+            verb: Control verbsoity. 6 = Print all including API
+                validation. 1 = Use TQDM waitbar.
+            **trans_kwargs: kwargs to pass on to each transaction found.
+        """
         # Increment block counter and remember which one this is
         Block._index += 1
         self.index = Block._index
@@ -50,27 +62,29 @@ class Block(Common, API, Export):
         self.f = f
         self.validateTrans = self.trans_kwargs.get('validateTrans', True)
         self.end = None
-        self.trans = {}
+        self.trans: dict = {}
 
         # Prepare remaning attributes unless this is a map, then skip
         if map is False:
-            self._magic = None
-            self._BlockSize = None
-            self._version = None
-            self._prevHash = None
-            self._merkleRootHash = None
-            self._timestamp = None
-            self._nBits = None
-            self._nonce = None
-            self._nTransactions = None
+            self._magic: bytes = b''
+            self._BlockSize: bytes = b''
+            self._version: bytes = b''
+            self._prevHash: bytes = b''
+            self._merkleRootHash: bytes = b''
+            self._timestamp: bytes = b''
+            self._nBits: bytes = b''
+            self._nonce: bytes = b''
+            self._nTransactions: bytes = b''
 
     def __repr__(self) -> str:
+        """ID object with hash."""
         h = getattr(self, 'hash', "No hash")
         t = getattr(self, 'time', "No time")
 
         return f"Block: {h} {t}"
 
     def __str__(self) -> str:
+        """Return full header, indented."""
         b = 3*" "*2
         s = f"{b}{'*'*10}Read block {self.index}{'*'*10}\n" \
             f"{b}Hash: {self.hash}\n" \
@@ -88,14 +102,13 @@ class Block(Common, API, Export):
         return s
 
     def _print(self) -> None:
+        """Print depending on .verb."""
         if self.verb >= 3:
             print(self)
 
     @classmethod
     def genesis(self) -> bytes:
-        """
-        Return genesis block bytes
-        """
+        """Return genesis block bytes."""
         gen = b"\xf9\xbe\xb4\xd9\x1d\x01\x00\x00\x01\x00\x00\x00"\
             b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"\
             b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"\
@@ -116,6 +129,7 @@ class Block(Common, API, Export):
         return gen
 
     def read_block(self) -> None:
+        """Read full block."""
         # Read header
         self.read_header()
 
@@ -134,63 +148,72 @@ class Block(Common, API, Export):
 
     @property
     def magic(self) -> str:
-        """
+        """Return magic as str.
+
         Convert to hex, decode bytes to str
         """
         return codecs.encode(self._magic, "hex").decode()
 
     @property
     def blockSize(self) -> int:
-        """
+        """Return blocksize as int.
+
         Reverse endedness, convert to hex, convert to int from base 16
         """
         return int(codecs.encode(self._blockSize[::-1], "hex"), 16)
 
     @property
     def prevHash(self) -> str:
-        """
+        """Return previous hash as str.
+
         Reverse, convert to hex, decode bytes to str
         """
         return codecs.encode(self._prevHash[::-1], "hex").decode()
 
     @property
     def merkleRootHash(self) -> str:
-        """
+        """Return Merkle root hash as str.
+
         Reverse, convert to hex, decode bytes to str
         """
         return codecs.encode(self._merkleRootHash[::-1], "hex").decode()
 
     @property
     def timestamp(self) -> int:
-        """
+        """Return timestamp as int.
+
         Reverse, convert to hex, convert to int from base 16
         """
         return int(codecs.encode(self._timestamp[::-1], "hex"), 16)
 
     @property
     def time(self) -> dt:
-        """
+        """Return time readable datetime.
+
         Doesn't have _time equivalent, uses self._timestamp
         """
         return dt.fromtimestamp(self.timestamp)
 
     @property
     def nBits(self) -> int:
-        """
+        """Return number of bits as int.
+
         Reverse , convert to hex, convert to int from base 16
         """
         return int(codecs.encode(self._nBits[::-1], "hex"), 16)
 
     @property
     def nonce(self) -> int:
-        """
+        """Return nonce as int.
+
         Reverse, convert to hex, convert to int from base 16
         """
         return int(codecs.encode(self._nonce[::-1], "hex"), 16)
 
     @property
     def nTransactions(self) -> int:
-        """
+        """Return number of transactions as int.
+
         Variable length
         Convert to int
         """
@@ -198,13 +221,13 @@ class Block(Common, API, Export):
         # return ord(self._nTransactions)
 
     def prep_header(self) -> bytes:
-        """
+        """Get header bytes.
+
         Prep the block header for hashing as stored in the Block class where
-        timestamp is already reversed (may change in future)
+        timestamp is already reversed (may change in future).
 
-        This data is already converted to hex so decode back to binary
+        This data is already converted to hex so decode back to binary.
         """
-
         # Collect header hex
         header = self._version \
             + self._prevHash \
@@ -216,8 +239,9 @@ class Block(Common, API, Export):
         return header
 
     def read_header(self) -> None:
-        """
-        Read the block header, store in ._name attributes
+        """Read the block header.
+
+        Store bytes in ._[name] attributes
         """
         # Read magic number: 4 bytes
         self._magic = self.read_next(4)
@@ -250,8 +274,9 @@ class Block(Common, API, Export):
         self._print()
 
     def read_trans(self) -> None:
-        """
-        Read transaction information in block
+        """Read transactions in block.
+
+        Store in dict in .trans.
         """
         self.trans = {}
         for t in range(self.nTransactions):
@@ -275,8 +300,8 @@ class Block(Common, API, Export):
             self.trans[t] = trans
 
     def verify(self):
-        """
-        Verify block size.
+        """Verify block size.
+
         End cursor position - cursor start position should match blockSize
         plus the 8 bytes for the magic number
 
@@ -289,11 +314,11 @@ class Block(Common, API, Export):
         #    raise BlockSizeMismatch
 
     def trans_to_pandas_(self) -> pd.DataFrame:
-        """
+        """Export abridged transactions to pandas.
+
         Concatenate data for all loaded trans, return as pandas df
         Abridged version.
         """
-
         df = pd.DataFrame()
         for v in self.trans.values():
             # Use the Export.to_pandas method
@@ -304,10 +329,10 @@ class Block(Common, API, Export):
         return df
 
     def trans_to_pandas(self) -> pd.DataFrame:
-        """
+        """Export transactions to pandas.
+
         Concatenate data for all loaded trans, return as pandas df
         """
-
         df = pd.DataFrame()
         for v in self.trans.values():
             # Use the full to pandas method
@@ -319,17 +344,19 @@ class Block(Common, API, Export):
 
     def trans_to_csv(self,
                      fn: str='transactions.csv') -> None:
-        """
-        Output entire transaction to table
+        """Save pandas df export to .csv.
+
+        Output entire transaction to table.
         """
         self.trans_to_pandas().to_csv(fn)
 
     def api_verify(self,
                    url: str="https://blockchain.info/rawblock/",
                    wait: bool=False) -> None:
-        """
+        """Validate block against blockchain.info.
+
         Query a block hash from Blockchain.info's api. Check it matches the
-        blockon size, merkle root, number of transactions, previous block hash
+        block on size, merkle root, number of transactions, previous block hash.
 
         Respects APIs request limting queries to 1 every 10s. If wait is True,
         waits to query. If false, skips.
@@ -337,7 +364,6 @@ class Block(Common, API, Export):
         TODO:
             - Tidy printing
         """
-
         if self.verb > 4:
             print("{0}{1}Validating{1}".format(" "*3,
                                                "_"*10))
@@ -368,10 +394,10 @@ class Block(Common, API, Export):
     def to_pic(self,
                fn: str='test.pic') -> None:
 
-        """
-        Serialise object to pickle object
-        """
+        """Serialise object to pickle object.
 
+        Removes unserialisable streams first.
+        """
         # Can't pickle .mmap objects
         out = self
         out.mmap = []
@@ -404,7 +430,18 @@ class Trans(Common, API, Export):
                  verb: int=4,
                  f: str=None,
                  map: bool=False) -> None:
+        """
+        Prepare Trans object.
 
+        Args
+            mmap mapped .dat.
+            cursor: Current location in mapped file.
+            f: Full path to .dat file.
+            map: If True, just map file rather than load. Slower, but
+                uses less memory. Default = False.
+            verb: Control verbsoity. 6 = Print all including API
+                validation. 1 = Use TQDM waitbar.
+        """
         # Increment block counter and remember which one this is
         Trans._index += 1
         self.index = Trans._index
@@ -421,17 +458,19 @@ class Trans(Common, API, Export):
 
         # Prepare other attributes
         if map is False:
-            self._version = None
-            self._nInputs = None
-            self._nOutputs = None
-            self._lockTime = None
+            self._version: bytes = b''
+            self._nInputs: bytes = b''
+            self._nOutputs: bytes = b''
+            self._lockTime: bytes = b''
 
     def __repr__(self):
+        """ID object with hash."""
         h = getattr(self, 'hash', "No hash")
 
         return f"Trans: {h} {1}"
 
     def __str__(self):
+        """Return full header, indented."""
         b = 4*" "*2
         s = f"{b}{'*'*10}Read transaction{'*'*10}\n" \
             f"{b}Hash: {self.hash}\n" \
@@ -459,27 +498,30 @@ class Trans(Common, API, Export):
 
     @property
     def nInputs(self) -> int:
-        """
+        """Return number of inputs as int.
+
         Reverse endedness, convert to hex, convert to int in base 16
         """
         return int(codecs.encode(self._nInputs[::-1], "hex"), 16)
 
     @property
     def nOutputs(self) -> int:
-        """
+        """Return number of outputs as int.
+
         Reverse endedness, convert to hex, convert to int in base 16
         """
         return int(codecs.encode(self._nOutputs[::-1], "hex"), 16)
 
     @property
     def lockTime(self) -> str:
-        """
+        """Return lock time as str.
+
         Convert to hex, decode bytes to str
         """
         return codecs.encode(self._lockTime, "hex").decode()
 
     def get_transaction(self) -> None:
-
+        """Read the full transaction."""
         # Read the version: 4 bytes
         self._version = self.read_next(4)
 
@@ -531,13 +573,13 @@ class Trans(Common, API, Export):
         self._print()
 
     def to_dict_full(self) -> dict:
-        """
+        """Return transaction as dict.
+
         Convert transaction to dict, get (for now) first input and first output
-        only
+        only.
 
-        Combines transction meta data and TxIn and TxOut
+        Combines transction meta data and TxIn and TxOut.
         """
-
         # Convert transction to dict
         tr = self.to_dict(keys=['hash', 'version',
                                 'nInputs', 'nOutputs',
@@ -559,7 +601,8 @@ class Trans(Common, API, Export):
         return tr
 
     def to_pandas_full(self) -> pd.DataFrame:
-        """
+        """Return transaction as pandas data frame row.
+
         Output entire transaction to table
         """
         tr = self.to_dict_full()
@@ -570,7 +613,8 @@ class Trans(Common, API, Export):
     def api_verify(self,
                    url: str="https://blockchain.info/rawtx/",
                    wait: bool=False) -> None:
-        """
+        """Validate transaction against blockchain.info.
+
         Query a block hash from Blockchain.info's api. Check it matches the
         blockon size, merkle root, number of transactions, previous block hash
 
@@ -580,7 +624,6 @@ class Trans(Common, API, Export):
         TODO:
             - Tidy printing
         """
-
         if self.verb > 4:
             print("{0}{1}Validating{1}".format(" "*4,
                                                "_"*10))
@@ -607,7 +650,8 @@ class Trans(Common, API, Export):
                                             "_"*30))
 
     def prep_header(self) -> bytes:
-        """
+        """Return transaction header bytes.
+
         Only works for single input and output transactions for now
         """
         header = self._version \
@@ -627,15 +671,25 @@ class Trans(Common, API, Export):
 
 
 class TxIn(Common, Export):
-    """
-    Class to handle transaction inputs
-    """
+    """Class to handle transaction inputs."""
     def __init__(self, mmap, cursor,
                  n: int=None,
                  verb: int=5,
                  f: str=None,
                  map: bool=False) -> None:
+        """
+        Prepare TxIn object.
 
+        Args
+            mmap mapped .dat.
+            cursor: Current location in mapped file.
+            n: index.
+            f: Full path to .dat file.
+            map: If True, just map file rather than load. Slower, but
+                uses less memory. Default = False.
+            verb: Control verbsoity. 6 = Print all including API
+                validation. 1 = Use TQDM waitbar.
+        """
         # Add a reference, if provided
         if n is not None:
             self.n = n
@@ -647,11 +701,11 @@ class TxIn(Common, Export):
 
         # Prepare other attributes
         if map is False:
-            self._sequence = None
-            self._scriptSig = None
-            self._scriptLength = None
-            self._prevIndex = None
-            self._prevOutput = None
+            self._sequence: bytes = b''
+            self._scriptSig: bytes = b''
+            self._scriptLength: bytes = b''
+            self._prevIndex: bytes = b''
+            self._prevOutput: bytes = b''
 
     def __str__(self) -> str:
         b = 5*" "*2
