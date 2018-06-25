@@ -210,30 +210,37 @@ def read_trans(m, cursor,
     inputs = []
     print(nInputs)
     for inp in range(nInputs):
-        # Read the inputs (previous_outputs): 36 bytes each
-        prevOutput = read_next(m, cursor, 36)
+        # Read the inputs (previous_outputs): 32 bytes
+        prevOutput = read_next(m, cursor, 32)
         if pr:
             print("    {0}-{1}: prevOutput: {2}".format(cursor,
-                                                        cursor+36,
+                                                        cursor+32,
                                                         prevOutput))
-        cursor += 36
+        cursor += 32
 
-        # Read the script length: 1 byte
-        scriptLength = read_next(m, cursor, 1)
+        # Read the index of the previous output (input): 4 bytes
+        prevIndex = read_next(m, cursor, 4)
+        if pr:
+            print("    {0}-{1}: prevIndex: {2}".format(cursor,
+                                                       cursor+4,
+                                                       prevIndex))
+        cursor += 4
+
+        # Read the script length: Variable bytes
+        scriptLength, steps = read_var(m, cursor)
         if pr:
             print("    {0}-{1}: scriptLength: {2}".format(cursor,
-                                                          cursor+1,
+                                                          cursor+steps,
                                                           scriptLength))
-        cursor += 1
+        cursor += steps
 
         # Read the script sig: Variable
-        scriptSig = read_next(m, cursor, int(scriptLength, 16))
+        scriptSig = read_next(m, cursor, scriptLength)
         if pr:
             print("    {0}-{1}: scriptSig: {2}".format(cursor,
-                                                       cursor+int(scriptLength,
-                                                                  16),
+                                                       cursor+scriptLength,
                                                        scriptSig))
-        cursor += int(scriptLength, 16)
+        cursor += scriptLength
 
         # Read sequence: 4 bytes
         sequence = read_next(m, cursor, 4)
@@ -271,20 +278,19 @@ def read_trans(m, cursor,
         cursor += 8
 
         # pk script
-        pkScriptLen = read_next(m, cursor, 1)
+        pkScriptLen, steps = read_var(m, cursor)
         if pr:
             print("    {0}-{1}: pkScriptLen: {2}".format(cursor,
-                                                         cursor+1,
+                                                         cursor+steps,
                                                          pkScriptLen))
-        cursor += 1
+        cursor += steps
 
-        pkScript = read_next(m, cursor, int(pkScriptLen, 16))
+        pkScript = read_next(m, cursor, pkScriptLen)
         if pr:
             print("    {0}-{1}: pkScript: {2}".format(cursor,
-                                                      cursor+int(pkScriptLen,
-                                                                 16),
+                                                      cursor+pkScriptLen,
                                                       pkScript))
-        cursor += int(pkScriptLen, 16)
+        cursor += pkScriptLen
 
         # Compile output info
         txOut = {'n': oup,
