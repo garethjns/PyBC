@@ -3,7 +3,7 @@
 Run from top level directory. These are ordered by implementation order, so vaguely in order of complexity.
 
 ## 1) Read block
-**Examples/ReadBlock.py**
+**Examples/py3_ReadBlock.py**
 
 Read a block from the binary .dat files created by the core wallet. Reads the block header fields in order, then reads transactions from the block.
 
@@ -14,8 +14,9 @@ Forms the basis of the following methods:
  - Dat.read_next_block()  
  - Dat.read_all()  
 
-## 2) Verify block
-**Examples/VerifyBlock.py**
+## 2) Verifying blocks
+**Examples/py3_HashBlock.py**
+
 
 Collect the appropriate pieces of a block header and hash with SHA256. This should produce a hash that satisfies the next difficulty requirement - ie., something that starts with lots of zeros like 000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f.
 
@@ -26,8 +27,14 @@ Forms the basis of the following functions and methods:
  - utils.rev_hex()  
  - Block.prep_header()  
 
+**Examples/py3_HashTransaction.py**  
+Hashing transactions.
+
+**Examples/py3_BlockchainInfoAPI.py**  
+Using block and transaction hases to query Blockchain.info API.
+
 ## 3) Decode output script for transaction
-**Examples/DecodeOutputScript.py**
+**Examples/py3_DecodeOutputScript.py**
 
 Transaction outputs (in Trans.pkScript) are encoded scripts containing OP_CODES and the transaction output address. This example creates a function to translate the script to a list of OP_CODES and encoded addresses. 
 
@@ -37,7 +44,7 @@ Forms the basis of the method:
 Trans.split_script()
 
 ## 4) Get transactions output address
-**Examples/GetOutputAddress.py**
+**Examples/py3_GetOutputAddress.py**
 
 This example extracts the encoded output address a Trans.pkScript, split with Trans.split_script() (see Examples/DecodeOutputScript.py).
 
@@ -63,3 +70,6 @@ Will form the basis for the following functions/methods:
  - utils.hashSHA256_twice()  
  - utils.ripemd_SHA256()  
  - Trans.get_ouput()
+
+## 7) Exporting 
+Examples of exporting data from blockcahin to other formats. For now, dicts, pickles, and Pandas. See file.

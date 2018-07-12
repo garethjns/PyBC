@@ -1,6 +1,6 @@
 # PyBc
 
-Bitcoin blockchain parsing in Python 2 and 3. 
+Bitcoin blockchain parsing in Python 3.6 (and 2.7). Still in development so expect bugs.
 
 
 # Requirements
@@ -13,7 +13,7 @@ The Examples/ directory contains the methods for importing the binary blocks int
 
 ## Python
 
- - Python 2.7 or 3.6 (others may also work)
+ - Python 3.6 or 2.7
  - base58
  - tqdm (optional)
 
@@ -30,6 +30,7 @@ pip install tqdm
 git clone https://github.com/garethjns/PyBC.git
 cd PyBc
 ````
+3) Some example ```.dat``` are included in Blocks/. Unzip these if required.
 
 # Usage
 
@@ -45,11 +46,15 @@ from py[version].Block import Chain
 Set the working directory to ````.../PyBc/```` and import required classes from the submodueles.
 
 ### Reading blocks
+See read_dat.py.
 ````PYTHON
 from py3.Block import Dat
 
 # Specify .dat to load
-f = 'Blocks/blk00000.dat' 
+path = 'Blocks/'
+f = 'blk00003.dat'
+dat = Dat(path, f,
+          verb=5)
 
 # Create Dat object
 dat = Dat(f,
@@ -69,11 +74,13 @@ dat.blocks[1].trans[0]._print()
 ````
 
 ### Read a whole ````.dat````
+See read_chain.py.
 ````Python
 from py3.Chain import Chain
 
 # Create a Chain object
-c = Chain(verb=4)
+c = Chain(verb=4,
+          outputPath="ExportedBlocks/")
 
 # Read the next .dat
 c.read_next_Dat()
@@ -86,9 +93,10 @@ from py3.Chain import Chain
 # Create chain object
 # Specifying (or not) which .dat to start from, and
 # how many to load
-c = Chain(verb=1,
-          datStart=2,
-          datn=3)
+c = Chain(verb=5,
+          datStart=0,
+          datn=1,
+          outputPath="ExportedBlocks/")
           
 # Read           
 c.read_all()
@@ -114,6 +122,8 @@ These examples include
  - BlockChainInfoAPI
      - How to query Blockchain.info's api
      - And use it to verify transactions and blocks
+- Export
+    - Explorting blocks to other formats indlucing dicts and Pandas DataFrames.
 
 [See Examples/readme.md for more info.](https://github.com/garethjns/PyBC/blob/master/Examples/readme.md)
 
@@ -153,7 +163,7 @@ Read ````.dat```` files ````000000 - 000002.dat````
 ````Python
 from Blocks import Chain
 
-c = Chain(verb=4, 
+c = Chain(verb=5, 
           datStart=0, 
           datn=3)
 
@@ -168,9 +178,13 @@ c.dats[0].blocks[1].trans[0]._print()
 
 #### Parameters
 ````verb```` : Import verbosity (int)  
-  - 1 = print ````.dat```` filename on import  
-  - 2 = print block level information on import  
-  - 3 = print transaction level information on import  
+  - 0 = printing off
+  - 1 = Use a TQDM waitbar, if available
+  - 2 = print ````.dat```` filename on import  
+  - 3 = print block level information on import  
+  - 4 = print transaction level information on import  
+  - 5 = print TxIn and TxOut level info
+  - 6 = print above and API validation checks
 
 ````datStart```` : First ````.dat```` file to load (int)  
 `````datn````` : Number of ````.dat```` files to load (int)  
@@ -181,6 +195,9 @@ c.dats[0].blocks[1].trans[0]._print()
 ````.read_next_Dat()```` : Read next file  
 ````.read_all()```` : Read all ````.dat```` files (within specified range)  
 
+#### TODO
+Some batch export methods would be useful.
+
 ### Dat and DatMap
 Object and methods to handle .dat files downloaded by Core wallet. Uses mmap to map ````.dat```` file to memory and read byte by byte. Keeps track of how far through a file has been read (.cursor).  
 
@@ -189,15 +206,17 @@ Load a single block
 ````Python
 from Blocks import Dat
 
-f = 'Blocks/blk00000.dat'
-dat = Dat(f, 
-          verb=4)
+path = 'Blocks/'
+f = 'blk00003.dat'
+dat = Dat(path, f,
+          verb=5)
 
 dat.read_next_block()
 ````
 
 #### Parameters
-f : path+filename of ````.dat```` file (string).
+path : path to folder containg ```.dat```s  
+f : filename of ````.dat```` file (string).
 
 #### Attributes
 ````.cursor```` : Current position in file (int).  
@@ -207,7 +226,11 @@ f : path+filename of ````.dat```` file (string).
 #### Methods
 ````.reset()```` : Reopen file, create new .mmap and return .cursor to 0.  
 ````.read_next_block()```` : Read the next block and store in .blocks. Remember final .cursor position.  
-````.read_all()```` : Read all blocks in .dat.
+````.read_all()```` : Read all blocks in ```.dat```.
+```.to_dict()``` : Return attributes in a dict  
+```.blocks_to_pandas()``` : All blocks as rows of pandas DataFrame. Doesn't include individual transaction information.  
+```.trans_to_pandas()``` : Return all transactions as rows of pandas data frame. Drops all but first input and output of each transaction.  
+```.to_pic()``` : Pickles the block to disk after removing all the mmap objects.
 
 ### Block and BlockMap
 Object and methods to handle individual blocks.
@@ -229,7 +252,7 @@ Object and methods to handle individual blocks.
 ````.timestamp```` : Timestamp (4 bytes)  
 ````.nBits```` : Block size (4 bytes)  
 ````.nonce```` : Nonce (4 bytes)    
-````.nTransactions```` : Number of transactions in block (1 byte)  
+````.nTransactions```` : Number of transactions in block (var bytes)  
 
 **Useful properties**  
 ````.time```` : Human readable time (dt)
@@ -241,6 +264,12 @@ Object and methods to handle individual blocks.
 ````._print()```` : Print block header info.  
 ````.prep_header()```` : Using the data stored in relevant header attributes, recombine and decode to binary ready for hashing.   
 ````.api_verify()```` : Get the block information from the Blockchain.info API (using the hash). Verify it matches on a few fields.  
+```.to_dict()``` : Return attributes in a dict  
+```.to_pandas()``` : Return as a single, index DataFrame row.
+```.to_csv()``` : Save DataFrame as .csv (not especially useful here - use export methods to Dat export with blocks-as-rows or transactions-as-rows).
+
+#### TODO
+- The ```.read_var()``` method fails for large values. In blocks where this occurs, it'll cause the cursor to increment too far and break everything.
 
 ### Trans (transaction) and TransMap
 Object to store transaction information.  
@@ -253,7 +282,7 @@ Object to store transaction information.
 
 **Transaction info**  (each has ._ property)  
 ````.version```` : Version (4 bytes).   
-````.nInputs```` : Number of transaction inputs (1 byte).  
+````.nInputs```` : Number of transaction inputs (variable bytes).  
 ````.txIn```` : Holds TxIn object for each input.  
 ````.txOut````: Holds TxOut object for each output.  
 ````.lockTime```` : Locktime (4 bytes).  
@@ -266,6 +295,12 @@ Object to store transaction information.
 ````.prep_header()```` : Returned concatenated bytes from transaction header to use for hashing.  
 ````._print()```` : Print transaction info.  
 ````.api_verify()```` : Get the transaction information from the Blockchain.info API (using the hash). Verify it matches on a few fields.  
+```.to_dict()``` : Return attributes in a dict  
+```.to_pandas()``` : Return as a single, index DataFrame row.
+```.to_csv()``` : Save DataFrame as .csv (not especially useful here - use export methods to Dat export with blocks-as-rows or transactions-as-rows).
+
+#### TODO
+```.pre_header()``` only gets the first input and first output the moment. This means the ```.hash``` is calculated incorrectly for transactions with multiple inputs or outputs.
 
 ### TxIn and TxInMap
 Holds inputs for transaction.
@@ -277,8 +312,8 @@ Holds inputs for transaction.
 **Transaction inputs**  
 ````.prevOutput```` : Previous output (32 bytes).  
 ````._prevIndex```` : self.read_next(4).  
-````.scriptLength```` : Script length (1 byte).  
-````.scriptSig```` :  ScriptSig (variable byes).  
+````.scriptLength```` : Script length (variable bytes).  
+````.scriptSig```` :  ScriptSig (variable bytes).  
 ````.sequence```` : Sequence (4 bytes).  
 
 #### Methods  
@@ -295,7 +330,7 @@ Holds outputs for transaction and methods to decode.
 **Transaction outputs**  
 ````.output```` : Transaction outputs (1 byte).  
 ````.value```` : Value in Satoshis (8 bytes).  
-````.pkScriptLen```` = pkScriptLen (1 byte).  
+````.pkScriptLen```` = pkScriptLen (variable bytes).  
 ````.pkScript```` : pkScript - contains output address (variable bytes).  
 
 **Useful properties**  
@@ -313,7 +348,12 @@ Holds outputs for transaction and methods to decode.
 
 ## Other classes
 ### Common
-Anything used in more than one class. Tracks cursor position in current file and holds reading and mapping methods.
+Anything used in more than one class. 
+ - Tracks cursor position in current file 
+ - Reading and mapping methods. 
+
+### Export
+ - General export methods.
 
 ### API
 Handles API calls to blockchain.info's API.
