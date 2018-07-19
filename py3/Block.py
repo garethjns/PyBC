@@ -4,22 +4,23 @@
 """
 
 # %% Imports
-
 import codecs
-import base58
+import mmap
 import pickle
+from datetime import datetime as dt
+
+import base58
 import pandas as pd
 
-from datetime import datetime as dt
-from py3.Common import Common, API, Export
-from pyx.utils import OP_CODES, hash_SHA256_twice, hash_SHA256_ripemd160
+from py3.Common import API, Common, Export
+from pyx.utils import OP_CODES, hash_SHA256_ripemd160, hash_SHA256_twice
 
 
 # %% Low level classes
 
 class Block(Common, API, Export):
     """
-    Class representing single block (and transactions)
+    Class representing single block (and transactions).
 
     Each part of the block header has a ._name attribute and a .name property.
     _.name is the hex decoded from binary.

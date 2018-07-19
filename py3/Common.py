@@ -109,9 +109,7 @@ class Common():
                  asHex: int=False,
                  rev: int=False,
                  pr: int=False) -> tuple:
-        """
-        Get indexes of next data locations, rather than reading
-        """
+        """Get indexes of next data locations, rather than reading."""
         start = self.cursor
 
         end = self.cursor + length
@@ -121,9 +119,7 @@ class Common():
 
     def map_var(self,
                 pr: int=False) -> Tuple[int, bytes]:
-        """
-        Find the indexes of the next (variable) data locations
-        """
+        """Find the indexes of the next (variable) data locations."""
         # Get the next byte
         index = self.cursor
         by = self.read_next(1)

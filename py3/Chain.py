@@ -7,12 +7,13 @@ quick tests
 # %% Imports
 
 import mmap
-import pandas as pd
-import numpy as np
 import pickle
 
-from py3.Common import Export
+import numpy as np
+import pandas as pd
+
 from py3.Block import Block
+from py3.Common import Export
 from pyx.utils import tqdm_off
 
 # Optional import for pretty waitbars
@@ -28,16 +29,30 @@ except ImportError:
 class Dat(Export):
     """
     Class to represent .dat file on disk.
+
     Opens and maps .dat ready for reading
     """
+
     _index = -1
 
-    def __init__(self, path: str,
-                 f: str,
+    def __init__(self, path: str, f: str,
                  verb: int=2,
                  defer_printing: int=0,
                  **kwargs) -> None:
+        """Initialise Dat.
 
+        Preallocate attributes.
+
+        Args:
+            path: Path to folder containing .dats eg. "Blocks/"
+            fn: File name of .dat eg. "blk0000.dat"
+            verb: Control verbosity of printing. Level 2 (default)
+                prints Dat level updates (ie. not detailed block
+                or trans info.)
+            defer_printing: Don't print anything until block
+                n then print at level specified by verb.
+            **kwargs: Args to pass on to Block and Trans classes when used.
+        """
         # Increment Dat counter and remember which one this is
         Dat._index += 1
         self.index = Dat._index
@@ -56,21 +71,32 @@ class Dat(Export):
         self.validateBlocks = kwargs.get('validateBlocks', True)
 
     def __repr__(self) -> str:
+        """
+        Overload __repr__.
+
+        Identify as filename and cursor location.
+        """
         s = f"dat: {self.f} @ {self.cursor}"
         return s
 
     def __str__(self) -> str:
+        """
+        Overload __str__.
+
+        Return __repr__ and number of blocks loaded.
+        """
         s = f"{self.__repr__()}"\
             f"Loaded: {self.nBlock}"
         return s
 
     def _print(self):
+        """Print after checking verbosity level."""
         if self.verb >= 2:
             print(self)
 
     def prepare_mem(self) -> None:
-        """
-        Open file, map, reset cursor
+        """Open file, map, reset cursor.
+
         TODO:
             - Test this function, might need updating
         """
@@ -88,6 +114,10 @@ class Dat(Export):
                         tqdm_on=True) -> None:
         """
         Read and return the next block.
+
+        Args:
+            n: NUmber of blocks to read. Default 1.
+            tqdm_on: Use tqdm waitbar (if available). Default True.
 
         Track cursor position.
         """
@@ -158,13 +188,15 @@ class Dat(Export):
 
     def blocks_to_pandas(self) -> pd.DataFrame:
         """
-        Output all loaded blocks to pandas df. Not particularly efficient.
+        Output all loaded blocks to pandas df.
+
+        Not particularly efficient.
         """
         df = pd.DataFrame()
 
         # For each loaded block
         for v in self.blocks.values():
-            # Get padnas row for block
+            # Get pandas row for block
             b = v.to_pandas()
 
             # Concat to data frame
@@ -175,15 +207,17 @@ class Dat(Export):
 
     def trans_to_pandas_(self) -> pd.DataFrame:
         """
-        Output all loaded trans to pandas df. Not particularly efficient.
-        Abridged version
-        """
+        Output all loaded trans to pandas df (abridged version).
 
+        Loops over loaded (or mapped) blocks and calls
+        trans_to_pandas_() private method.
+        Not particularly efficient.
+        """
         df = pd.DataFrame()
 
         # For each block
         for v in self.blocks.values():
-            # Get padnas rows for block transactions
+            # Get pandas rows for block transactions
             ts = v.trans_to_pandas_()
 
             # Concat to data frame
@@ -194,12 +228,16 @@ class Dat(Export):
 
     def trans_to_pandas(self) -> None:
         """
-        Output all loaded trans to pandas df. Not particularly efficient.
+        Output all loaded trans to pandas df.
+
+        Loops over loaded (or mapped) blocks and calls
+        trans_to_pandas() method.
+        Not particularly efficient.
         """
         df = pd.DataFrame()
 
         for v in self.blocks.values():
-            # Get padnas rows for block transactions
+            # Get pandas rows for block transactions
             b = v.trans_to_pandas()
 
             # Concat to data frame
@@ -212,8 +250,11 @@ class Dat(Export):
                fn: str='test.pic') -> None:
 
         """
-        Serialise object to pickle object
-        (Not working)
+        Serialize Dat to pickle object.
+
+        Need to run through children objects recursively to
+        remove the (redundant) mmaps, which can't be serialized.
+        (Not working?)
         """
 
         # Can't pickle .mmap objects
@@ -239,9 +280,8 @@ class Dat(Export):
 
 
 class Chain():
-    """
-    Class to handle chain and loading from .dat files
-    """
+    """Class to handle chain and loading from .dat files."""
+
     def __init__(self,
                  path: str='Blocks/',
                  datStart: int=0,
@@ -249,10 +289,17 @@ class Chain():
                  verb: int=1,
                  outputPath: str=None,
                  **kwargs) -> None:
-
         """
-        Verb is set to 0 until def_printing number of blocks is reached.
-        Useful for quicker debuging of dodgy blocks
+        Initialise Chain object.
+
+        Args:
+            path: Path to folder containing .dats eg. "Blocks/"
+            fn: File name of .dat eg. "blk0000.dat"
+            verb: Control verbosity of printing. Level 1 (default)
+                prints Chain level updates (ie. not detailed Dat, Block
+                or Trans info.)
+            **kwargs: Args to pass on to Dat, Block, and Trans
+                classes when used.
         """
         self.datStart = datStart
         self.datn = datn
@@ -267,12 +314,19 @@ class Chain():
         self.dat_kwargs = kwargs
 
     def __repr__(self) -> str:
+        """
+        Overload __str__.
+
+        Return __repr__ path and range.
+        """
         s = f"Chain over {self.datPath} {self.datStart} - {self.datEnd}"
         return s
 
     def read_next_Dat(self) -> None:
         """
-        Read next .dat, track progress. Can move past specified end.
+        Read next .dat, track progress.
+
+        Can move past specified end.
         """
         d = self.readDat(datn=self.on)
         d.read_all()
@@ -281,6 +335,13 @@ class Chain():
         self.on += 1
 
     def readDat(self, datn: int) -> Dat:
+        """
+        Read block specified by file number.
+
+        Args:
+            datn: Integer identifier for file. Used to generate name.
+            eg. 1 -> "blk0001.dat".
+        """
         fn = "blk{0:05d}.dat".format(datn)
 
         if self.verb >= 1:
@@ -297,12 +358,14 @@ class Chain():
 
     def read_all(self) -> None:
         """
-        Read all blocks in .dat
-        Or in limited range specified by datStart -> datStart+datn
+        Read all (or specified range of) blocks in .dat.
+
+        Limited range specified by datStart -> datStart+datn
+        when initializing Chain object.
         """
         # Read requested range
         for fi in range(self.datStart,
-                                    self.datStart+self.datn):
+                        self.datStart+self.datn):
             d = self.readDat(datn=fi)
             d.read_all()
 
@@ -325,7 +388,7 @@ class Chain():
 
 if __name__ == "__main__":
     """
-    Examples and tests
+    Examples and tests.
     """
 
     # %% Load .dat
