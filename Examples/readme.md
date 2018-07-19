@@ -2,8 +2,9 @@
  
 Run from top level directory. These are ordered by implementation order, so vaguely in order of complexity.
 
-## 1) Read block
-**Examples/py3_ReadBlock.py**
+## Reading block
+**Examples/py3_ReadBlock.py**  
+**Examples/py3_ReadBlock.ipynb**
 
 Read a block from the binary .dat files created by the core wallet. Reads the block header fields in order, then reads transactions from the block.
 
@@ -14,7 +15,7 @@ Forms the basis of the following methods:
  - Dat.read_next_block()  
  - Dat.read_all()  
 
-## 2) Verifying blocks
+## Verifying blocks
 **Examples/py3_HashBlock.py**
 
 
@@ -33,7 +34,7 @@ Hashing transactions.
 **Examples/py3_BlockchainInfoAPI.py**  
 Using block and transaction hases to query Blockchain.info API.
 
-## 3) Decode output script for transaction
+## Decoding output script for transaction
 **Examples/py3_DecodeOutputScript.py**
 
 Transaction outputs (in Trans.pkScript) are encoded scripts containing OP_CODES and the transaction output address. This example creates a function to translate the script to a list of OP_CODES and encoded addresses. 
@@ -43,7 +44,7 @@ See Examples/GetOutputAddress.py for how to extract the encoded address and conv
 Forms the basis of the method:
 Trans.split_script()
 
-## 4) Get transactions output address
+## Getting transactions output address
 **Examples/py3_GetOutputAddress.py**
 
 This example extracts the encoded output address a Trans.pkScript, split with Trans.split_script() (see Examples/DecodeOutputScript.py).
@@ -51,7 +52,7 @@ This example extracts the encoded output address a Trans.pkScript, split with Tr
 There appear to be at least two ways to do this:  
  -  https://bitcoin.stackexchange.com/questions/19081/parsing-bitcoin-input-and-output-addresses-from-scripts  
     1) Strip op_codes  
-    2) Add verion ("00" for mainnet)  
+    2) Add version ("00" for mainnet)  
     3) Hash with SHA256  
     4) Hash with SHA256 ("checksum")  
     5) Add first 4 bytes of checksum to stage 2  
@@ -60,7 +61,7 @@ There appear to be at least two ways to do this:
     1) Strip op_codes  
     2) Hash with SHA256  
     3) Hash with Ripemd160  
-    4) Add verion ("00" for mainnet)  
+    4) Add version ("00" for mainnet)  
     5) Hash with SHA256  
     6) Hash with SHA256 ("checksum")  
     7) Add first 4 bytes of checksum to stage 4  
@@ -71,5 +72,6 @@ Will form the basis for the following functions/methods:
  - utils.ripemd_SHA256()  
  - Trans.get_ouput()
 
-## 7) Exporting 
+## Exporting 
+**Examples/py3_Export.py**
 Examples of exporting data from blockcahin to other formats. For now, dicts, pickles, and Pandas. See file.
