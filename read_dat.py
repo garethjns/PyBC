@@ -4,7 +4,7 @@ Examples for using dat class
 """
 # %% Imports
 
-from py3.Chain import Dat
+from pybit.py3.chain import Dat
 
 # %% Read .dat
 path = 'Blocks/'

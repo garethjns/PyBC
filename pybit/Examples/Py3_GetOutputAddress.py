@@ -37,8 +37,8 @@ import base58
 import codecs
 
 # See Examples/DecodeOutputScripts.py
-from pyx.utils import split_script
-from py3.Chain import Chain
+from pybit.pyx.utils import split_script
+from pybit.py3.chain import Chain
 
 
 # %% Implement example from:

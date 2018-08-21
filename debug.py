@@ -1,4 +1,4 @@
-from py3.Chain import Chain
+from pybit.py3.chain import Chain
 
 c = Chain(datStart=1,
           verb=6, 

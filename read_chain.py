@@ -2,13 +2,13 @@
 
 # %% Imports
 
-from py3.Chain import Chain
+from pybit.py3.chain import Chain
 
 
 # %% Create chain
 
-c = Chain(verb=3,
-          datStart=3,
+c = Chain(verb=1,
+          datStart=0,
           datn=1,
           outputPath="ExportedBlocks/")
 c.read_all()

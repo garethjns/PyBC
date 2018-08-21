@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 # %% Imports
 
-from py3.ChainMap import DatMap
+from pybit.py3.chain_map import DatMap
 
 # %% Map a .dat
 
-path = 'Blocks/'
+path = 'pybit/Blocks/'
 f = 'blk00003.dat'
 dat = DatMap(path, f,
              verb=6)

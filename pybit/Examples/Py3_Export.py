@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 
 import pickle
 
-from py3.Chain import Dat
+from pybit.py3.chain import Dat
 
 
 # %% Read a few blocks

@@ -6,8 +6,8 @@
 # %% Imports
 
 from datetime import datetime as dt
-from py2.Common import Common, API
-from pyx.utils import OP_CODES, hash_SHA256_twice, hash_SHA256_ripemd160
+from pybit.py2.common import Common, API
+from pybit.pyx.utils import OP_CODES, hash_SHA256_twice, hash_SHA256_ripemd160
 
 import base58
 

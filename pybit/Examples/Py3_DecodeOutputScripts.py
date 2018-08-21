@@ -2,12 +2,12 @@
 
 # %% Imports
 
-from py2.Chain import Chain
+from pybit.py3.chain import Chain
 
 
 # %% Import a block
 
-c = Chain(verb=4,
+c = Chain(verb=1,
           datStart=0,
           datn=3)
 c.read_next_Dat()

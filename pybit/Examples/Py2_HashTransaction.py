@@ -13,10 +13,8 @@ https://bitcoin.stackexchange.com/questions/2859/how-are-transaction-hashes-calc
 
 # %% Imports
 
-from pyx.utils import hash_SHA256_twice
-from py3.Chain import Dat
-
-import codecs
+from pybit.py2.utils import hash_SHA256_twice
+from pybit.py2.chain import Dat
 
 
 # %% Get a transaction
@@ -48,14 +46,14 @@ header = trans._version \
         + trans.txOut[0]._pkScript \
         + trans._lockTime
 
-print("\n")
-print(codecs.encode(header, "hex"))
+print "\n"
+print header.encode("hex")
 
 
 # %% Hash with SHA256 twice
 # Also reverse
 
-print(codecs.encode(hash_SHA256_twice(header)[::-1], "hex"))
+print hash_SHA256_twice(header)[::-1].encode("hex")
 
 
 # %% Function version
@@ -78,6 +76,7 @@ def prep_header(trans):
 
 
 header = prep_header(dat.blocks[0].trans[0])
-transHash = codecs.encode(hash_SHA256_twice(header)[::-1], "hex")
+transHash = hash_SHA256_twice(header)[::-1].encode("hex")
 
-print(transHash)
+print transHash
+

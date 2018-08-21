@@ -2,9 +2,9 @@
 
 # %% Imports
 
-from py3.Chain import Chain, Dat
-from py3.BlockMap import BlockMap
-from pyx.utils import tqdm_off
+from pybit.py3.chain import Chain, Dat
+from pybit.py3.block_map import BlockMap
+from pybit.pyx.utils import tqdm_off
 
 # Optional import for pretty waitbars
 try:

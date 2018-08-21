@@ -32,12 +32,12 @@ TODO:
 
 # %% Imports
 
-from py2.Chain import Chain
+from pybit.py2.chain import Chain
 import hashlib
 import base58
 
 # See Examples/DecodeOutputScripts.py
-from pyx.utils import split_script
+from pybit.pyx.utils import split_script
 
 
 # %% Implement example from:

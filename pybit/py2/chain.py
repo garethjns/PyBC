@@ -2,9 +2,9 @@
 
 # %% Imports
 
-from py2.Common import Common
-from pyx.utils import tqdm_off
-from py2.Block import Block
+from pybit.py2.common import Common
+from pybit.pyx.utils import tqdm_off
+from pybit.py2.block import Block
 
 import mmap
 

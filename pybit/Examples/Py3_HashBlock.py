@@ -7,7 +7,7 @@ Created on Fri Apr 06 16:24:39 2018
 
 # %% Imports
 
-from py3.Chain import Dat
+from pybit.py3.chain import Dat
 
 import hashlib
 import mmap

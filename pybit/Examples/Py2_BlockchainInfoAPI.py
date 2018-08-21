@@ -16,7 +16,7 @@ Queries for blocks are done using block hash, and are returned in json format
 
 import requests
 import time
-from py3.Chain import Dat
+from pybit.py2.chain import Dat
 
 
 # %% Get genesis block from Blockchain.info api
@@ -30,20 +30,20 @@ resp = requests.get(url + blockHash)
 
 # Check reponse 200
 if resp.status_code == 200:
-    print("Good response")
+    print "Good response"
 else:
-    print("Bad response code {}".format(resp.status_code))
+    print "Bad response code {}".format(resp.status_code)
 
 
 # %% Look at response
 
 # Print block info
-print(resp.json())
+print resp.json()
 
 # Print individual fields, eg
-print("\n")
-print(resp.json()['bits'])
-print(resp.json()['mrkl_root'])
+print "\n"
+print resp.json()['bits']
+print resp.json()['mrkl_root']
 
 
 # %% Function version
@@ -58,13 +58,11 @@ def get_resp(h,
     if dTime < 11:
         sleep_time = 11 - dTime
         if pr:
-            print("Sleeping for {0}".format(sleep_time))
+            print "Sleeping for {0}".format(sleep_time)
         time.sleep(sleep_time)
 
     # Query
-    print(url+h)
     resp = requests.get(url + h)
-
     # Record the last time
     lastTime = time.time()
 
@@ -73,59 +71,54 @@ def get_resp(h,
         jr = resp.json()
     else:
         # Or return the response code on error
-        print(resp.status_code)
-        jr = None
+        jr = resp.status_code
 
     return jr
 
 
 def block_validate(block,
-                   pr=True,
-                   **kwargs):
+                   pr=True):
     """
     Query a block hash from Blockchain.info's api. Check it matches the block
     on size, merkle root, number of transactions, previous block hash
 
     Respects apis request limting queries to 1 every 10s.
     """
-    # Wait if last query was less than 10s ago
+
     jr = get_resp(block.hash,
+                  lastTime=0,
                   url="https://blockchain.info/rawblock/",
-                  **kwargs)
+                  pr=True)
 
-    if jr is not None:
-        # Check size
-        t1 = jr['size'] == block.blockSize
-        if pr:
-            print(t1)
+    # Check size
+    t1 = jr['size'] == block.blockSize
+    if pr:
+        print t1
 
-        # Check merkle root
-        t2 = jr['mrkl_root'] == block.merkleRootHash
-        if pr:
-            print(t2)
+    # Check merkle root
+    t2 = jr['mrkl_root'] == block.merkleRootHash
+    if pr:
+        print t2
 
-        # Check number of transactions
-        t3 = jr['n_tx'] == block.nTransactions
-        if pr:
-            print(t3)
+    # Check number of transactions
+    t3 = jr['n_tx'] == block.nTransactions
+    if pr:
+        print t3
 
-        # Check previous block hash
-        t4 = jr['prev_block'] == block.prevHash
-        if pr:
-            print(t4)
+    # Check previous block hash
+    t4 = jr['prev_block'] == block.prevHash
+    if pr:
+        print t4
 
-    else:
-        t1 = t2 = t3 = t4 = False
-   
     # The the overall result
     result = t1 & t2 & t3 & t4
 
     # Report
     if pr:
         if result:
-            print("Pass")
+            print "Pass"
         else:
-            print("Fail")
+            print "Fail"
 
     return lastTime, result
 
@@ -144,7 +137,7 @@ lastTime = 0
 lastTime, result = block_validate(block)
 
 # Run same query again to test wait timer
-print("\n")
+print "\n"
 lastTime, result = block_validate(block, lastTime)
 
 
@@ -153,7 +146,7 @@ lastTime, result = block_validate(block, lastTime)
 # Get a transaction hash
 transHash = dat.blocks[0].trans[0].hash
 
-print(transHash)
+print transHash
 
 # api url
 url = "https://blockchain.info/rawtx/"
@@ -162,26 +155,26 @@ resp = requests.get(url + transHash)
 
 # Check reponse 200
 if resp.status_code == 200:
-    print("Good response")
+    print "Good response"
 else:
-    print("Bad response code {}".format(resp.status_code))
+    print "Bad response code {}".format(resp.status_code)
 
 
 # %% Look at response
 
 # Print block info
-print(resp.json())
+print resp.json()
 
 # Print individual fields, eg
-print("\n")
+print "\n"
 # Script from input 0
-print(resp.json()['inputs'][0]['script'])
+print resp.json()['inputs'][0]['script']
 # Transaction hash
-print(resp.json()['hash'])
+print resp.json()['hash']
 # Some meta info for output 0 (not in block)
-print(resp.json()['out'][0]['addr_tag'])
+print resp.json()['out'][0]['addr_tag']
 # Decoded output address
-print(resp.json()['out'][0]['addr'])
+print resp.json()['out'][0]['addr']
 
 
 # %% Function version
@@ -206,17 +199,17 @@ def trans_validate(trans,
     # Input 0 script
     t1 = jr['inputs'][0]['script'] == trans.txIn[0].scriptSig
     if pr:
-        print(t1)
+        print t1
 
     # Output 0 script
     t2 = jr['out'][0]['script'] == trans.txOut[0].pkScript
     if pr:
-        print(t2)
+        print t2
 
     # Decoded output address
     t3 = jr['out'][0]['addr'] == trans.txOut[0].outputAddr
     if pr:
-        print(t3)
+        print t3
 
     # The the overall result
     result = t1 & t2 & t3
@@ -224,9 +217,9 @@ def trans_validate(trans,
     # Report
     if pr:
         if result:
-            print("Pass")
+            print "Pass"
         else:
-            print("Fail")
+            print "Fail"
 
     return lastTime, result
 

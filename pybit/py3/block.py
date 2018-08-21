@@ -12,8 +12,8 @@ from datetime import datetime as dt
 import base58
 import pandas as pd
 
-from py3.Common import API, Common, Export
-from pyx.utils import OP_CODES, hash_SHA256_ripemd160, hash_SHA256_twice
+from pybit.py3.common import API, Common, Export
+from pybit.pyx.utils import OP_CODES, hash_SHA256_ripemd160, hash_SHA256_twice
 
 
 # %% Low level classes

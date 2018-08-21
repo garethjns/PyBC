@@ -2,7 +2,7 @@
 
 # %% Imports
 
-from py2.Chain import Chain, Dat
+from pybit.py2.chain import Chain, Dat
 
 
 # %% Higher level classes

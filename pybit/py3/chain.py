@@ -12,9 +12,9 @@ import pickle
 import numpy as np
 import pandas as pd
 
-from py3.Block import Block
-from py3.Common import Export
-from pyx.utils import tqdm_off
+from pybit.py3.block import Block
+from pybit.py3.common import Export
+from pybit.pyx.utils import tqdm_off
 
 # Optional import for pretty waitbars
 try:

@@ -7,11 +7,11 @@ import unittest
 
 import codecs
 
-from pyx.utils import hash_SHA256, hash_SHA256_twice
-from py3.Chain import Dat
-from py3.ChainMap import DatMap
-from py3.Block import TxOut
-from py3.Common import Common
+from pybit.pyx.utils import hash_SHA256, hash_SHA256_twice
+from pybit.py3.chain import Dat
+from pybit.py3.chain_map import DatMap
+from pybit.py3.block import TxOut
+from pybit.py3.common import Common
 
 
 # %% Tests for functions
@@ -45,7 +45,7 @@ class GenesisTest(unittest.TestCase):
 
     def setUp(self):
         """Load genesis block from Blocks/blk0000.dat."""
-        path = 'Blocks/'
+        path = '../pybit/Blocks/'
         f = 'blk00000.dat'
         dat = Dat(path, f,
                   verb=1)
@@ -85,7 +85,7 @@ class GenesisTestMap(GenesisTest):
 
     def setUp(self):
         """Load genesis block from Blocks/blk0000.dat."""
-        path = 'Blocks/'
+        path = '../pybit/Blocks/'
         f = 'blk00000.dat'
         dat = DatMap(path, f,
                      verb=1)

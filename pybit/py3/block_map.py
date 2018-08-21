@@ -14,17 +14,26 @@ Properties replace the ._[name] attributes with a get method.
 
 # %% Imports
 
-from py2.Block import Block, Trans, TxIn, TxOut
-from py2.ChainMap import DatMap
+from pybit.py3.block import Block, Trans, TxIn, TxOut
 
 
 # %% Lower level classes
 
 class BlockMap(Block):
     """
-    Test class to map to location in .dat file, rather than holding data in
-    attributes
+    Class to map Blocks to location in .dat file, rather than holding data in attributes.
+    Access via properties instead.
     """
+
+    def __init__(self, *args, **kwargs) -> None:
+        """
+        Run super init with map parameter set to true. Othwerwise the same.
+        This avoids trying to preallocate attributes (which are now properties)
+        to None.
+        """
+        super().__init__(*args, **kwargs,
+                         map=True)
+
     @property
     def _magic(self):
         """
@@ -70,7 +79,8 @@ class BlockMap(Block):
 
     @property
     def _nTransactions(self):
-        return self.read_range(r1=self._nTransactions_i[0])
+        return self.read_range(r1=self._nTransactions_i[0],
+                               r2=self._nTransactions_i[1])
 
     def read_header(self):
         """
@@ -101,27 +111,53 @@ class BlockMap(Block):
         self._nonce_i = self.map_next(4)
 
         # Read the number of transactions: VarInt 1-9 bytes
-        self._nTransactions_loc, self._nTransactions_i = self.map_var()
+        self._nTransactions_i, _ = self.map_var()
+
+        # Print (depends on verbosity)
+        self._print()
 
     def read_trans(self):
         """
         Read transaction information in block
         """
         self.trans = {}
-        fr = self.cursor
         for t in range(self.nTransactions):
 
-            # Make transaction objects and table
-            trans = TransMap(self.mmap, fr,
+            # Make transaction objects (and table later?)
+            trans = TransMap(self.mmap, self.cursor,
                              verb=self.verb,
-                             f=self.f)
-            fr = trans.cursor
-            self.trans[t] = trans
+                             f=self.f,
+                             **self.trans_kwargs)
 
-        self.cursor = fr
+            # Read the transaction
+            trans.get_transaction()
+
+            # Validate, if on
+            if self.validateTrans:
+                trans.api_verify()
+
+            # Update cursor
+            self.cursor = trans.cursor
+
+            # Save
+            self.trans[t] = trans
 
 
 class TransMap(Trans):
+    """
+    Class to map Trans to location in .dat file, rather than holding data in attributes.
+    Access via properties instead.
+    """
+
+    def __init__(self, *args, **kwargs) -> None:
+        """
+        Run super init with map parameter set to true. Othwerwise the same.
+        This avoids trying to preallocate attributes (which are now properties)
+        to None.
+        """
+        super().__init__(*args, **kwargs,
+                         map=True)
+
     @property
     def _version(self):
         return self.read_range(r1=self._version_i[0],
@@ -129,60 +165,89 @@ class TransMap(Trans):
 
     @property
     def _nInputs(self):
-        return self.read_range(r1=self._nInputs_i[0])
+        return self.read_range(r1=self._nInputs_i[0],
+                               r2=self._nInputs_i[1])
 
     @property
     def _nOutputs(self):
-        return self.read_range(r1=self._nOutputs_i[0])
+        return self.read_range(r1=self._nOutputs_i[0],
+                               r2=self._nOutputs_i[1])
 
     @property
     def _lockTime(self):
         return self.read_range(r1=self._lockTime_i[0],
                                r2=self._lockTime_i[1])
 
-    def get_transaction(self):
+    def get_transaction(self) -> None:
 
         # Read the version: 4 bytes
         self._version_i = self.map_next(4)
 
         # Read number of inputs: VarInt 1-9 bytes (or CVarInt?)
-        self._nInputs_loc, self._nInputs_i = self.map_var()
+        self._nInputs_i, _ = self.map_var()
 
         # Read the inputs (variable bytes)
-        inputs = []
-        for inp in range(self.nInputs):
+        self.txIn = []
+        for _ in range(self.nInputs):
+            # Create the TxIn object
             txIn = TxInMap(self.mmap, self.cursor,
+                           verb=self.verb,
                            f=self.f)
-            inputs.append(txIn)
+
+            # Read the input data
+            txIn.read_in()
+
+            # Append to inputs in Trans object
+            self.txIn.append(txIn)
 
             # Update cursor position to the end of this input
             self.cursor = txIn.cursor
 
-        self.txIn = inputs
-
         # Read number of outputs: VarInt 1-9 bytes (or CVarInt?)
-        self._nOutputs_loc, self._nOutputs_i = self.map_var()
+        self._nOutputs_i, _ = self.map_var()
 
         # Read the outputs (varible bytes)
-        outputs = []
-        for oup in range(self.nOutputs):
+        self.txOut = []
+        for _ in range(self.nOutputs):
+            # Create TxOut object
             txOut = TxOutMap(self.mmap, self.cursor,
+                             verb=self.verb,
                              f=self.f)
-            outputs.append(txOut)
+
+            # Read the output data
+            txOut.read_out()
+
+            # Append to outputs in Trans object
+            self.txOut.append(txOut)
 
             # Update cursor position to the end of this output
             self.cursor = txOut.cursor
 
-        self.txOut = outputs
-
         # Read the locktime (4 bytes)
         self._lockTime_i = self.map_next(4)
 
-        # Record the end for refernece, remove later?
+        # Record the end for reference, remove later?
         self.end = self.cursor
+
+        # Print (depends on verbosity)
+        self._print()
 
 
 class TxInMap(TxIn):
+    """
+    Class to map TxIns to location in .dat file, rather than holding data in attributes.
+    Access via properties instead.
+    """
+
+    def __init__(self, *args, **kwargs) -> None:
+        """
+        Run super init with map parameter set to true. Othwerwise the same.
+        This avoids trying to preallocate attributes (which are now properties)
+        to None.
+        """
+        super().__init__(*args, **kwargs,
+                         map=True)
+
     @property
     def _prevOutput(self):
         return self.read_range(r1=self._prevOutput_i[0],
@@ -208,16 +273,16 @@ class TxInMap(TxIn):
         return self.read_range(r1=self._sequence_i[0],
                                r2=self._sequence_i[1])
 
-    def read_in(self):
+    def read_in(self) -> None:
         # TxIn:
-        # Read the previous_output (input) hash: 34 bytess
-        self._prevOutput_i = self.map_next(34)
+        # Read the previous_output (input) hash: 34 bytes (34?!)
+        self._prevOutput_i = self.map_next(32)
 
         # Read the index of the previous output (input)
-        self._prevIndex_i = self.read_next(4)
+        self._prevIndex_i = self.map_next(4)
 
         # Read the script length: 1 byte
-        self._scriptLength_i = self.map_next(1)
+        self._scriptLength_i, _ = self.map_var()
 
         # Read the script sig: Variable
         self._scriptSig_i = self.map_next(self.scriptLength)
@@ -227,6 +292,19 @@ class TxInMap(TxIn):
 
 
 class TxOutMap(TxOut):
+    """
+    Class to map TxOuts to location in .dat file, rather than holding data in attributes.
+    Access via properties instead.
+    """
+
+    def __init__(self, *args, **kwargs):
+        """
+        Run super init with map parameter set to true. Othwerwise the same.
+        This avoids trying to preallocate attributes (which are now properties)
+        to None.
+        """
+        super().__init__(*args, **kwargs,
+                         map=True)
 
     @property
     def _value(self):
@@ -243,13 +321,13 @@ class TxOutMap(TxOut):
         return self.read_range(r1=self._pkScript_i[0],
                                r2=self._pkScript_i[1])
 
-    def read_out(self):
+    def read_out(self) -> None:
         # TxOut:
         # Read value in Satoshis: 8 bytes
         self._value_i = self.map_next(8)
 
         # pk script
-        self._pkScriptLen_i = self.map_next(1)
+        self._pkScriptLen_i, i = self.map_var()
 
         # Read the script: Variable
         self._pkScript_i = self.map_next(self.pkScriptLen)
@@ -259,19 +337,6 @@ class TxOutMap(TxOut):
 
 
 if __name__ == "__main__":
-    ""
-
-    # %% Create a map object
-
-    f = 'Blocks/blk00000.dat'
-    datm = DatMap(f,
-                  verb=4)
-
-    # %% Read next block
-
-    datm.read_next_block()
-
-    # Verify it's correct
-    datm.blocks[0].api_verify()
-
-
+    """
+    See map_dat.py
+    """

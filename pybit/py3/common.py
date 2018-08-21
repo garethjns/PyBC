@@ -11,7 +11,7 @@ from typing import Tuple
 from datetime import datetime as dt
 import pandas as pd
 
-from pyx.utils import hash_SHA256_twice
+from pybit.pyx.utils import hash_SHA256_twice
 
 
 # %% Error classes
